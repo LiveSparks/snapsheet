@@ -628,6 +628,21 @@ const state={
   dpi:300, target:"sel", layout:null,
 };
 const MIN_ZOOM=.5;
+const SETTINGS_KEY="snapsheet-settings-v1";
+function mergeSettings(target,source){if(!source||typeof source!=="object")return;
+  Object.keys(target).forEach(k=>{if(Object.prototype.hasOwnProperty.call(source,k)&&typeof source[k]===typeof target[k])target[k]=source[k];});}
+let savedSettings=null;
+function loadSettings(){
+  try{savedSettings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");}catch(e){savedSettings=null;}
+  if(!savedSettings)return;
+  if(["flow","polaroid","grid"].includes(savedSettings.mode))state.mode=savedSettings.mode;
+  mergeSettings(state.page,savedSettings.page);mergeSettings(state.flow,savedSettings.flow);mergeSettings(state.pol,savedSettings.pol);mergeSettings(state.grid,savedSettings.grid);mergeSettings(state.guides,savedSettings.guides);
+  if(Number.isFinite(savedSettings.dpi))state.dpi=savedSettings.dpi;
+  if(savedSettings.target==="sel"||savedSettings.target==="all")state.target=savedSettings.target;
+}
+function settingsSnapshot(){return{mode:state.mode,page:{...state.page},flow:{...state.flow},pol:{...state.pol},grid:{...state.grid},guides:{...state.guides},dpi:state.dpi,target:state.target,
+  adjust:batchAdj(),closed:$$(".sec").filter(s=>s.classList.contains("closed")).map(s=>s.id)};}
+const saveSettings=debounce(()=>{try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settingsSnapshot()));}catch(e){}},140);
 const DEF_ADJ=()=>({b:100,c:100,s:100,sh:0,r:10});
 const adjActive=p=>p.adj.b!==100||p.adj.c!==100||p.adj.s!==100||p.adj.sh>0;
 const adjCss=p=>`brightness(${p.adj.b}%) contrast(${p.adj.c}%) saturate(${p.adj.s}%)`;
@@ -1283,7 +1298,7 @@ $("#btnLoadSel").onclick=()=>{
   set("bS",p.adj.s);$("#bSv").textContent=p.adj.s+"%";
   set("bSH",p.adj.sh);$("#bSHv").textContent=p.adj.sh+"%";
   set("bR",p.adj.r);$("#bRv").textContent=(p.adj.r/10).toFixed(1);
-  toast("Loaded adjustments from "+p.name);
+  saveSettings();toast("Loaded adjustments from "+p.name);
 };
 [["bB","%"],["bC","%"],["bS","%"],["bSH","%"]].forEach(([id,suf])=>{
   $("#"+id).addEventListener("input",e=>{$("#"+id+"v").textContent=e.target.value+suf;applyBatchAdjustments();});});
@@ -1323,7 +1338,7 @@ $("#btnSavePreset").onclick=()=>{
 
 /* ═════════════════════════ UI wiring ═════════════════════════ */
 function segBind(sel,cb){$(sel).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  $$(sel+" button").forEach(x=>x.classList.remove("on"));b.classList.add("on");cb(b);});}
+  $$(sel+" button").forEach(x=>x.classList.remove("on"));b.classList.add("on");cb(b);saveSettings();});}
 segBind("#modeSeg",b=>{state.mode=b.dataset.mode;
   $("#optFlow").hidden=state.mode!=="flow";
   $("#optPolaroid").hidden=state.mode!=="polaroid";
@@ -1334,7 +1349,7 @@ segBind("#gdStyleSeg",b=>{state.guides.style=b.dataset.s;renderPages();});
 segBind("#targetSeg",b=>{state.target=b.dataset.t;});
 $("#gdColors").addEventListener("click",e=>{const b=e.target.closest(".sw");if(!b)return;
   $$("#gdColors .sw").forEach(x=>x.classList.remove("on"));b.classList.add("on");
-  state.guides.color=b.dataset.c;renderPages();});
+  state.guides.color=b.dataset.c;renderPages();saveSettings();});
 function mmRange(id,key,after){$("#"+id).addEventListener("input",e=>{
   $("#"+id+"v").textContent=e.target.value+"mm";
   key(+e.target.value);if(after)after();relayout();});}
@@ -1352,7 +1367,7 @@ function sizeChipBind(sel,wKey,hKey){$(sel).addEventListener("click",e=>{const b
   state[wKey][hKey[0]]=+b.dataset.w;state[wKey][hKey[1]]=+b.dataset.h;
   const ids=wKey==="flow"?["fMaxW","fMaxH"]:["gCW","gCH"];
   $("#"+ids[0]).value=state[wKey][hKey[0]];$("#"+ids[0]+"v").textContent=state[wKey][hKey[0]]+"mm";
-  $("#"+ids[1]).value=state[wKey][hKey[1]];$("#"+ids[1]+"v").textContent=state[wKey][hKey[1]]+"mm";relayout();});}
+  $("#"+ids[1]).value=state[wKey][hKey[1]];$("#"+ids[1]+"v").textContent=state[wKey][hKey[1]]+"mm";relayout();saveSettings();});}
 sizeChipBind("#flowChips","flow",["maxW","maxH"]);
 sizeChipBind("#gridChips","grid",["cw","ch"]);
 $("#fRotate").addEventListener("change",e=>{state.flow.rotate=e.target.checked;relayout();});
@@ -1361,7 +1376,7 @@ $("#pDates").addEventListener("change",e=>{state.pol.dates=e.target.checked;rend
 $("#polChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;
   state.pol.pw=+b.dataset.w;state.pol.ph=+b.dataset.h;
   $("#pW").value=state.pol.pw;$("#pWv").textContent=state.pol.pw+"mm";
-  $("#pH").value=state.pol.ph;$("#pHv").textContent=state.pol.ph+"mm";relayout();});
+  $("#pH").value=state.pol.ph;$("#pHv").textContent=state.pol.ph+"mm";relayout();saveSettings();});
 $("#pgSize").addEventListener("change",e=>{
   state.page.size=e.target.value;
   $("#customDims").hidden=e.target.value!=="custom";
@@ -1384,7 +1399,24 @@ function enhanceRanges(){RANGE_IDS.forEach(id=>{const input=$("#"+id);if(!input|
   input.addEventListener("input",()=>{entry.value=input.value;});
   input.after(tools);tools.append(minus,plus,entry,val);
  });}
-$$(".sec>h3").forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("closed")));
+function restoreControls(){
+  const mark=(sel,attr,value)=>{$$(sel+" button").forEach(b=>b.classList.toggle("on",b.dataset[attr]===value));};
+  mark("#modeSeg","mode",state.mode);$("#optFlow").hidden=state.mode!=="flow";$("#optPolaroid").hidden=state.mode!=="polaroid";$("#optGrid").hidden=state.mode!=="grid";
+  const setRange=(id,value,suffix)=>{$("#"+id).value=value;$("#"+id+"v").textContent=value+suffix;};
+  setRange("fMaxW",state.flow.maxW,"mm");setRange("fMaxH",state.flow.maxH,"mm");$("#fRotate").checked=state.flow.rotate;
+  setRange("pW",state.pol.pw,"mm");setRange("pH",state.pol.ph,"mm");setRange("pBand",state.pol.band,"mm");setRange("pPad",state.pol.pad,"mm");$("#pBorder").checked=state.pol.border;$("#pDates").checked=state.pol.dates;
+  setRange("gCW",state.grid.cw,"mm");setRange("gCH",state.grid.ch,"mm");mark("#gFitSeg","fit",state.grid.fit);
+  $("#pgSize").value=state.page.size;$("#customDims").hidden=state.page.size!=="custom";$("#pgCW").value=state.page.w;$("#pgCH").value=state.page.h;
+  mark("#orientSeg","o",state.page.orient);setRange("pgMargin",state.page.margin,"mm");setRange("pgGap",state.page.gap,"mm");$("#pgDpi").value=state.dpi;$("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off.`;
+  $("#gdOn").checked=state.guides.on;$("#gdPreview").checked=state.guides.preview;mark("#gdStyleSeg","s",state.guides.style);$$("#gdColors .sw").forEach(b=>b.classList.toggle("on",b.dataset.c===state.guides.color));
+  mark("#targetSeg","t",state.target);
+  const adj=savedSettings?.adjust||{};
+  if(Number.isFinite(adj.b))setRange("bB",adj.b,"%");if(Number.isFinite(adj.c))setRange("bC",adj.c,"%");if(Number.isFinite(adj.s))setRange("bS",adj.s,"%");if(Number.isFinite(adj.sh))setRange("bSH",adj.sh,"%");if(Number.isFinite(adj.r)){setRange("bR",adj.r,"");$("#bRv").textContent=(adj.r/10).toFixed(1);}
+  $$(".sec").forEach(s=>s.classList.toggle("closed",(savedSettings?.closed||[]).includes(s.id)));
+}
+$$(".sec>h3").forEach(h=>h.addEventListener("click",()=>{h.parentElement.classList.toggle("closed");saveSettings();}));
+document.addEventListener("input",e=>{if(e.target.closest("#panel")&&e.target.matches("input[type=range],input[type=number]"))saveSettings();});
+document.addEventListener("change",e=>{if(e.target.closest("#panel")&&e.target.matches("input,select"))saveSettings();});
 /* panel drawer (mobile) */
 $("#btnControls").onclick=()=>document.body.classList.toggle("panelOpen");
 $("#backdrop").onclick=()=>document.body.classList.remove("panelOpen");
@@ -1415,6 +1447,8 @@ document.addEventListener("keydown",e=>{
 window.addEventListener("resize",debounce(()=>{if(state.layout&&state.photos.length)renderPages();},160));
 
 /* init */
+loadSettings();
+restoreControls();
 enhanceRanges();
 renderPresets();
 relayoutNow();
