@@ -453,8 +453,9 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
       <label class="check" style="margin-top:2px"><input type="checkbox" id="gdOn" checked> Print guides on sheets</label>
       <div class="row"><label>Style</label>
         <div class="seg" style="flex:1" id="gdStyleSeg">
-          <button data-s="marks" class="on cy">Crop marks</button>
-          <button data-s="lines">Full lines</button>
+           <button data-s="marks" class="on cy">Crop marks</button>
+           <button data-s="lines">Full lines</button>
+           <button data-s="edge">Edge marks</button>
         </div>
       </div>
       <div class="row"><label>Ink</label>
@@ -885,10 +886,15 @@ function setCapEl(c,p,f,K){
 function drawGuides(ctx,pg,K,W,H){
   const g=state.guides;ctx.strokeStyle=g.color;ctx.globalAlpha=0.9;
   ctx.lineWidth=Math.max(0.8,0.22*K);
-  if(g.style==="lines"){
-    const vx=new Set(),hy=new Set();
-    pg.frames.forEach(f=>{[f.cut.x,f.cut.x+f.cut.w].forEach(v=>vx.add(Math.round(v*10)/10));
-      [f.cut.y,f.cut.y+f.cut.h].forEach(v=>hy.add(Math.round(v*10)/10));});
+  const vx=new Set(),hy=new Set();
+  pg.frames.forEach(f=>{[f.cut.x,f.cut.x+f.cut.w].forEach(v=>vx.add(Math.round(v*10)/10));
+    [f.cut.y,f.cut.y+f.cut.h].forEach(v=>hy.add(Math.round(v*10)/10));});
+  if(g.style==="edge"){
+    const l=3.5;ctx.beginPath();
+    vx.forEach(x=>{if(x<0||x>W)return;ctx.moveTo(x*K,0);ctx.lineTo(x*K,l*K);ctx.moveTo(x*K,H*K);ctx.lineTo(x*K,(H-l)*K);});
+    hy.forEach(y=>{if(y<0||y>H)return;ctx.moveTo(0,y*K);ctx.lineTo(l*K,y*K);ctx.moveTo(W*K,y*K);ctx.lineTo((W-l)*K,y*K);});
+    ctx.stroke();
+  }else if(g.style==="lines"){
     ctx.beginPath();
     vx.forEach(x=>{ctx.moveTo(x*K,0);ctx.lineTo(x*K,H*K);});
     hy.forEach(y=>{ctx.moveTo(0,y*K);ctx.lineTo(W*K,y*K);});
