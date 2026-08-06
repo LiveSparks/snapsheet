@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<script defer id="heifLib" src="https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/libheif-wasm/libheif-bundle.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
 :root{
@@ -681,6 +682,40 @@ const sharpPx=(r,pxPerMm)=>r/10*pxPerMm/(150/MM_IN);
 
 /* ═════════════════════════ import pipeline ═════════════════════════ */
 const importQueue=[]; let importBusy=0, importDone=0, importTotal=0;
+const heifLibReady=new Promise((resolve,reject)=>{
+  const s=$("#heifLib");
+  if(typeof window.libheif==="function")return resolve();
+  if(!s)return reject(new Error("HEIF decoder script is missing"));
+  s.addEventListener("load",()=>resolve(),{once:true});
+  s.addEventListener("error",()=>reject(new Error("HEIF decoder failed to load")),{once:true});
+});
+let heifModulePromise=null;
+function getHeifModule(){
+  if(!heifModulePromise)heifModulePromise=heifLibReady.then(()=>window.libheif());
+  return heifModulePromise;
+}
+async function decodeHeic(file){
+  try{
+    const lib=await getHeifModule();
+    const decoder=new lib.HeifDecoder();
+    const images=decoder.decode(new Uint8Array(await file.arrayBuffer()));
+    const image=images[0];
+    if(!image)throw new Error("HEIF contains no images");
+    const w=image.get_width(),h=image.get_height();
+    const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+    const ctx=cv.getContext("2d"),data=ctx.createImageData(w,h);
+    await new Promise((resolve,reject)=>image.display(data,displayData=>displayData?resolve():reject(new Error("HEIF display failed"))));
+    ctx.putImageData(data,0,0);
+    const blob=await new Promise((resolve,reject)=>cv.toBlob(b=>b?resolve(b):reject(new Error("HEIF conversion failed")),"image/jpeg",.92));
+    if(image.free)image.free();
+    if(decoder.free)decoder.free();
+    return blob;
+  }catch(primary){
+    if(!window.heic2any)throw primary;
+    const out=await heic2any({blob:file,toType:"image/jpeg",quality:.92});
+    return Array.isArray(out)?out[0]:out;
+  }
+}
 function queueImport(files){
   const list=[...files].filter(f=>f&&(f.type.startsWith("image/")||/\.(heic|heif|jpe?g|png|webp|gif)$/i.test(f.name)));
   if(!list.length)return toast("No image files found");
@@ -704,9 +739,8 @@ async function importFile(file){
   try{ url=URL.createObjectURL(file); img=await loadImg(url); }        // native decode (Safari handles HEIC)
   catch(e){
     if(url)URL.revokeObjectURL(url);
-    if(!(isHeic&&window.heic2any)) throw e;
-    const out=await heic2any({blob:file,toType:"image/jpeg",quality:0.92});
-    blob=Array.isArray(out)?out[0]:out;
+    if(!isHeic)throw e;
+    blob=await decodeHeic(file);
     url=URL.createObjectURL(blob); img=await loadImg(url);
   }
   const nw=img.naturalWidth,nh=img.naturalHeight;
@@ -823,7 +857,6 @@ function clampCrop(p){
   const s0=Math.max(fm.w/p.w,fm.h/p.h)*p.crop.z;
   const mx=(p.w*s0-fm.w)/2,my=(p.h*s0-fm.h)/2;
   p.crop.x=clamp(p.crop.x,-mx,mx); p.crop.y=clamp(p.crop.y,-my,my);
-  if(p.crop.z<=1){p.crop.x=0;p.crop.y=0;}
 }
 function applyFrameImg(img,p,f,K){
   let left,top,dw,dh;
@@ -1168,21 +1201,22 @@ $("#exportMenu").addEventListener("click",async e=>{
 });
 
 /* ═════════════════════════ batch adjust & presets ═════════════════════════ */
-function targetsFor(){
+function targetsFor(announce=true){
   let list;
   if(state.target==="sel"){list=state.photos.filter(p=>state.sel.has(p.id)&&p.included);
-    if(!list.length){list=state.photos.filter(p=>p.included);toast("No photos selected — applied to all");}}
+    if(!list.length){list=state.photos.filter(p=>p.included);if(announce)toast("No photos selected — applied to all");}}
   else list=state.photos.filter(p=>p.included);
   return list;
 }
 function batchAdj(){return{b:+$("#bB").value,c:+$("#bC").value,s:+$("#bS").value,sh:+$("#bSH").value,r:+$("#bR").value};}
-$("#btnApply").onclick=()=>{
-  const adj=batchAdj(),list=targetsFor();
+function applyBatchAdjustments(announce=false){
+  const adj=batchAdj(),list=targetsFor(announce);
   list.forEach(p=>p.adj={...adj});
   list.forEach(updatePhotoVisual);
   list.forEach(renderFilmDots);
-  toast(`Applied to ${list.length} photo${list.length!==1?"s":""}`);
-};
+  if(announce)toast(`Applied to ${list.length} photo${list.length!==1?"s":""}`);
+}
+$("#btnApply").onclick=()=>applyBatchAdjustments(true);
 $("#btnLoadSel").onclick=()=>{
   const p=state.photos.find(q=>state.sel.has(q.id))||state.photos.find(q=>q.included);
   if(!p)return toast("Nothing to load from");
@@ -1195,8 +1229,8 @@ $("#btnLoadSel").onclick=()=>{
   toast("Loaded adjustments from "+p.name);
 };
 [["bB","%"],["bC","%"],["bS","%"],["bSH","%"]].forEach(([id,suf])=>{
-  $("#"+id).addEventListener("input",e=>$("#"+id+"v").textContent=e.target.value+suf);});
-$("#bR").addEventListener("input",e=>$("#bRv").textContent=(e.target.value/10).toFixed(1));
+  $("#"+id).addEventListener("input",e=>{$("#"+id+"v").textContent=e.target.value+suf;applyBatchAdjustments();});});
+$("#bR").addEventListener("input",e=>{$("#bRv").textContent=(e.target.value/10).toFixed(1);applyBatchAdjustments();});
 /* presets */
 let presets=[];try{presets=JSON.parse(localStorage.getItem("snapsheet-presets")||"[]");}catch(e){}
 function savePresets(){try{localStorage.setItem("snapsheet-presets",JSON.stringify(presets));}catch(e){}}
@@ -1237,8 +1271,8 @@ segBind("#targetSeg",b=>{state.target=b.dataset.t;});
 $("#gdColors").addEventListener("click",e=>{const b=e.target.closest(".sw");if(!b)return;
   $$("#gdColors .sw").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   state.guides.color=b.dataset.c;renderPages();});
-function mmRange(id,key,after){$(id).addEventListener("input",e=>{
-  $(id+"v").textContent=e.target.value+"mm";
+function mmRange(id,key,after){$("#"+id).addEventListener("input",e=>{
+  $("#"+id+"v").textContent=e.target.value+"mm";
   key(+e.target.value);if(after)after();relayout();});}
 mmRange("fMaxW",v=>state.flow.maxW=v);
 mmRange("fMaxH",v=>state.flow.maxH=v);
