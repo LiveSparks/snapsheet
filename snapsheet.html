@@ -1337,7 +1337,7 @@ $("#btnLoadSel").onclick=()=>{
   set("bC",p.adj.c);$("#bCv").textContent=p.adj.c+"%";
   set("bS",p.adj.s);$("#bSv").textContent=p.adj.s+"%";
   set("bSH",p.adj.sh);$("#bSHv").textContent=p.adj.sh+"%";
-  set("bR",p.adj.r);$("#bRv").textContent=(p.adj.r/10).toFixed(1);
+  set("bR",p.adj.r);$("#bRv").textContent=(p.adj.r/10).toFixed(1);["bB","bC","bS","bSH","bR"].forEach(syncRangeEntry);
   saveSettings();toast("Loaded adjustments from "+p.name);
 };
 [["bB","%"],["bC","%"],["bS","%"],["bSH","%"]].forEach(([id,suf])=>{
@@ -1407,7 +1407,7 @@ function sizeChipBind(sel,wKey,hKey){$(sel).addEventListener("click",e=>{const b
   state[wKey][hKey[0]]=+b.dataset.w;state[wKey][hKey[1]]=+b.dataset.h;
   const ids=wKey==="flow"?["fMaxW","fMaxH"]:["gCW","gCH"];
   $("#"+ids[0]).value=state[wKey][hKey[0]];$("#"+ids[0]+"v").textContent=state[wKey][hKey[0]]+"mm";
-  $("#"+ids[1]).value=state[wKey][hKey[1]];$("#"+ids[1]+"v").textContent=state[wKey][hKey[1]]+"mm";relayout();saveSettings();});}
+  $("#"+ids[1]).value=state[wKey][hKey[1]];$("#"+ids[1]+"v").textContent=state[wKey][hKey[1]]+"mm";ids.forEach(syncRangeEntry);relayout();saveSettings();});}
 sizeChipBind("#flowChips","flow",["maxW","maxH"]);
 sizeChipBind("#gridChips","grid",["cw","ch"]);
 $("#fRotate").addEventListener("change",e=>{state.flow.rotate=e.target.checked;relayout();});
@@ -1416,7 +1416,7 @@ $("#pDates").addEventListener("change",e=>{state.pol.dates=e.target.checked;rend
 $("#polChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;
   state.pol.pw=+b.dataset.w;state.pol.ph=+b.dataset.h;
   $("#pW").value=state.pol.pw;$("#pWv").textContent=state.pol.pw+"mm";
-  $("#pH").value=state.pol.ph;$("#pHv").textContent=state.pol.ph+"mm";relayout();saveSettings();});
+  $("#pH").value=state.pol.ph;$("#pHv").textContent=state.pol.ph+"mm";["pW","pH"].forEach(syncRangeEntry);relayout();saveSettings();});
 $("#pgSize").addEventListener("change",e=>{
   state.page.size=e.target.value;
   $("#customDims").hidden=e.target.value!=="custom";
@@ -1428,7 +1428,8 @@ $("#pgDpi").addEventListener("change",e=>{state.dpi=+e.target.value;
   $("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off.`;});
 $("#gdOn").addEventListener("change",e=>{state.guides.on=e.target.checked;renderPages();});
 $("#gdPreview").addEventListener("change",e=>{state.guides.preview=e.target.checked;renderPages();});
-const RANGE_IDS=["fMaxW","fMaxH","pW","pH","pBand","pPad","gCW","gCH","pgMargin","pgGap","bB","bC","bS","bSH","bR"];
+const RANGE_IDS=["fMaxW","fMaxH","pW","pH","pBand","pPad","gCW","gCH","pgMargin","pgGap","bB","bC","bS","bSH","bR","mB","mC","mS","mSH","mR","mZoom"];
+function syncRangeEntry(id){const input=$("#"+id),entry=input?.parentElement.querySelector(".rangeEntry");if(entry)entry.value=input.value;}
 function enhanceRanges(){RANGE_IDS.forEach(id=>{const input=$("#"+id);if(!input||input.dataset.enhanced)return;
   const val=$("#"+id+"v"),tools=el("span","rangeTools"),minus=document.createElement("button"),plus=document.createElement("button"),entry=document.createElement("input");
   input.dataset.enhanced="1";minus.type=plus.type="button";minus.textContent="−";plus.textContent="+";minus.setAttribute("aria-label","Decrease value");plus.setAttribute("aria-label","Increase value");
