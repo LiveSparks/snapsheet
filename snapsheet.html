@@ -193,19 +193,36 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
   content:"";position:absolute;inset:0;border-radius:16px;padding:2px;pointer-events:none;
   background:
     repeating-linear-gradient(90deg,var(--line2) 0 10px,transparent 10px 20px) top/100% 2px no-repeat,
-    repeating-linear-gradient(90deg,var(--line2) 0 10px,transparent 10px 20px) bottom/100% 2px no-repeat,
+    repeating-linear-gradient(90deg,var(--line2) 0 10px,transparent 10px 20px) bottom/100% 2px no-repeat;
+  animation:antsH var(--scan-h-duration,8s) ease-in-out infinite alternate;
+  animation-delay:var(--scan-h-delay,-1.5s);
+}
+.dz::after{
+  content:"";position:absolute;inset:0;border-radius:16px;padding:2px;pointer-events:none;
+  background:
     repeating-linear-gradient(0deg,var(--line2) 0 10px,transparent 10px 20px) left/2px 100% no-repeat,
     repeating-linear-gradient(0deg,var(--line2) 0 10px,transparent 10px 20px) right/2px 100% no-repeat;
-  animation:ants 1.4s linear infinite;
+  animation:antsV var(--scan-v-duration,11s) ease-in-out infinite alternate;
+  animation-delay:var(--scan-v-delay,-3s);
 }
 .dz.over::before{
   background:
     repeating-linear-gradient(90deg,var(--cy) 0 10px,transparent 10px 20px) top/100% 2px no-repeat,
-    repeating-linear-gradient(90deg,var(--cy) 0 10px,transparent 10px 20px) bottom/100% 2px no-repeat,
+    repeating-linear-gradient(90deg,var(--cy) 0 10px,transparent 10px 20px) bottom/100% 2px no-repeat;
+}
+.dz.over::after{
+  background:
     repeating-linear-gradient(0deg,var(--cy) 0 10px,transparent 10px 20px) left/2px 100% no-repeat,
     repeating-linear-gradient(0deg,var(--cy) 0 10px,transparent 10px 20px) right/2px 100% no-repeat;
 }
-@keyframes ants{to{background-position:20px 0,-20px 0,0 20px,0 -20px}}
+@keyframes antsH{
+  from{background-position:0 0,0 100%;}
+  to{background-position:20px 0,-20px 100%;}
+}
+@keyframes antsV{
+  from{background-position:0 0,100% 0;}
+  to{background-position:0 20px,100% -20px;}
+}
 .pols{display:flex;justify-content:center;gap:4px;margin-bottom:24px;height:110px}
 .pol{
   width:86px;background:#fdfdf9;padding:7px 7px 26px;border-radius:2px;position:relative;
@@ -1370,6 +1387,12 @@ document.addEventListener("keydown",e=>{
 window.addEventListener("resize",debounce(()=>{if(state.layout&&state.photos.length)renderPages();},160));
 
 /* init */
+const scanZone=$("#dropZone");
+const scanH=7+Math.random()*5,scanV=9+Math.random()*6;
+scanZone.style.setProperty("--scan-h-duration",scanH.toFixed(2)+"s");
+scanZone.style.setProperty("--scan-v-duration",scanV.toFixed(2)+"s");
+scanZone.style.setProperty("--scan-h-delay",(-Math.random()*scanH).toFixed(2)+"s");
+scanZone.style.setProperty("--scan-v-delay",(-Math.random()*scanV).toFixed(2)+"s");
 renderPresets();
 relayoutNow();
 renderFilm();
