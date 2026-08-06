@@ -110,6 +110,12 @@ img{display:block}
 .row{display:flex;align-items:center;gap:8px;margin-top:10px}
 .row label,.flabel{font-size:12px;color:var(--tx2);flex:none}
 .val{font:11px var(--mono);color:var(--yl);min-width:52px;text-align:right;flex:none}
+.rangeTools{display:flex;align-items:center;gap:3px;flex:none}
+.rangeTools button{width:23px;height:27px;border:1px solid var(--line2);border-radius:5px;background:var(--field);font:600 15px/1 var(--mono);color:var(--tx2)}
+.rangeTools button:hover{border-color:var(--yl);color:var(--yl)}
+.rangeEntry{width:56px!important;padding:5px 4px!important;text-align:right;font:11px var(--mono)!important;color:var(--yl)!important}
+.rangeEntry::-webkit-inner-spin-button,.rangeEntry::-webkit-outer-spin-button{opacity:1}
+.rangeTools .val{display:none}
 input[type=range]{
   -webkit-appearance:none;appearance:none;flex:1;height:26px;background:transparent;min-width:60px;
 }
@@ -381,30 +387,39 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
           Grid</button>
       </div>
 
-      <div id="optFlow" hidden>
-        <div class="row"><label>Max width</label><input type="range" id="fMaxW" min="15" max="280" value="92"><span class="val" id="fMaxWv">92mm</span></div>
-        <div class="row"><label>Max height</label><input type="range" id="fMaxH" min="15" max="280" value="92"><span class="val" id="fMaxHv">92mm</span></div>
-        <label class="check"><input type="checkbox" id="fRotate" checked> Allow 90° rotation (packs tighter)</label>
+        <div id="optFlow" hidden>
+          <div class="row"><label>Max width</label><input type="range" id="fMaxW" min="15" max="280" value="92"><span class="val" id="fMaxWv">92mm</span></div>
+          <div class="row"><label>Max height</label><input type="range" id="fMaxH" min="15" max="280" value="92"><span class="val" id="fMaxHv">92mm</span></div>
+          <div class="chips" id="flowChips">
+            <button class="chip" data-w="102" data-h="152">4×6 in</button>
+            <button class="chip" data-w="35" data-h="45">Passport</button>
+          </div>
+          <label class="check"><input type="checkbox" id="fRotate" checked> Allow 90° rotation (packs tighter)</label>
         <p class="hintline">Photos keep their aspect ratio and are shelf-packed with as little wasted paper as possible.</p>
       </div>
 
       <div id="optPolaroid">
         <div class="row"><label>Photo width</label><input type="range" id="pW" min="20" max="180" value="62"><span class="val" id="pWv">62mm</span></div>
         <div class="row"><label>Photo height</label><input type="range" id="pH" min="20" max="180" value="62"><span class="val" id="pHv">62mm</span></div>
-        <div class="chips" id="polChips">
+          <div class="chips" id="polChips">
           <button class="chip" data-w="62" data-h="62">62×62</button>
           <button class="chip" data-w="79" data-h="79">79×79</button>
           <button class="chip" data-w="89" data-h="64">89×64</button>
-        </div>
-        <div class="row"><label>Date band</label><input type="range" id="pBand" min="0" max="40" value="16"><span class="val" id="pBandv">16mm</span></div>
-        <div class="row"><label>White border</label><input type="range" id="pPad" min="0" max="15" value="5"><span class="val" id="pPadv">5mm</span></div>
-        <label class="check"><input type="checkbox" id="pDates" checked> Print file dates in the band</label>
+          </div>
+          <div class="row"><label>Date band</label><input type="range" id="pBand" min="0" max="40" value="16"><span class="val" id="pBandv">16mm</span></div>
+          <div class="row"><label>White border</label><input type="range" id="pPad" min="0" max="15" value="5"><span class="val" id="pPadv">5mm</span></div>
+          <label class="check"><input type="checkbox" id="pBorder" checked> Add white border</label>
+          <label class="check"><input type="checkbox" id="pDates" checked> Print file dates in the band</label>
         <p class="hintline">Photos are cropped to the frame — tap one on the sheet to reposition or zoom. Leave the band blank to write on it by hand.</p>
       </div>
 
-      <div id="optGrid" hidden>
-        <div class="row"><label>Cell width</label><input type="range" id="gCW" min="20" max="280" value="60"><span class="val" id="gCWv">60mm</span></div>
-        <div class="row"><label>Cell height</label><input type="range" id="gCH" min="20" max="280" value="45"><span class="val" id="gCHv">45mm</span></div>
+        <div id="optGrid" hidden>
+          <div class="row"><label>Cell width</label><input type="range" id="gCW" min="20" max="280" value="60"><span class="val" id="gCWv">60mm</span></div>
+          <div class="row"><label>Cell height</label><input type="range" id="gCH" min="20" max="280" value="45"><span class="val" id="gCHv">45mm</span></div>
+          <div class="chips" id="gridChips">
+            <button class="chip" data-w="102" data-h="152">4×6 in</button>
+            <button class="chip" data-w="35" data-h="45">Passport</button>
+          </div>
         <div class="row"><label>Fit</label>
           <div class="seg" style="flex:1" id="gFitSeg">
             <button data-fit="cover" class="on cy">Crop to fill</button>
@@ -607,7 +622,7 @@ const state={
   mode:"polaroid",
   page:{size:"a4",w:210,h:297,orient:"auto",margin:8,gap:3},
   flow:{maxW:92,maxH:92,rotate:true},
-  pol:{pw:62,ph:62,band:16,pad:5,dates:true},
+  pol:{pw:62,ph:62,band:16,pad:5,border:true,dates:true},
   grid:{cw:60,ch:45,fit:"cover"},
   guides:{on:true,style:"marks",color:"#e0242f",preview:true},
   dpi:300, target:"sel", layout:null,
@@ -621,6 +636,7 @@ const capText=p=>{const c=(p.caption||"").trim(); if(c)return c; return state.po
 function frameMM(){ if(state.mode==="polaroid")return{w:state.pol.pw,h:state.pol.ph,cover:true};
   if(state.mode==="grid")return{w:state.grid.cw,h:state.grid.ch,cover:state.grid.fit==="cover"};
   return null; }
+const polPad=()=>state.pol.border?state.pol.pad:0;
 
 /* ═════════════════════════ bitmap cache / imaging ═════════════════════════ */
 const CANVAS_FILTER=(()=>{try{const c=document.createElement("canvas").getContext("2d");c.filter="brightness(1.2)";return c.filter==="brightness(1.2)"}catch(e){return false}})();
@@ -821,7 +837,7 @@ function layCells(photos,W,H,cellW,cellH,mkFrame){
   return{pages,cov:pages.length?used/(pages.length*iw*ih):0};
 }
 function layPolaroid(photos,W,H){
-  const{pw,ph,band,pad}=state.pol, cw=pw+2*pad, ch=ph+band+2*pad;
+  const{pw,ph,band}=state.pol,pad=polPad(),cw=pw+2*pad,ch=ph+band+2*pad;
   return layCells(photos,W,H,cw,ch,(p,cx,cy)=>({
     pid:p.id,img:{x:cx+pad,y:cy+pad,w:pw,h:ph},cut:{x:cx,y:cy,w:cw,h:ch},
     cap:band>0.5?{x:cx,y:cy+pad+ph,w:cw,h:band}:null,crop:true}));
@@ -1273,7 +1289,14 @@ $("#btnLoadSel").onclick=()=>{
   $("#"+id).addEventListener("input",e=>{$("#"+id+"v").textContent=e.target.value+suf;applyBatchAdjustments();});});
 $("#bR").addEventListener("input",e=>{$("#bRv").textContent=(e.target.value/10).toFixed(1);applyBatchAdjustments();});
 /* presets */
-let presets=[];try{presets=JSON.parse(localStorage.getItem("snapsheet-presets")||"[]");}catch(e){}
+const DEFAULT_PRESETS=[
+  {name:"Phone print lift",adj:{b:108,c:106,s:112,sh:18,r:10}},
+  {name:"Matte paper pop",adj:{b:106,c:112,s:116,sh:24,r:12}}
+];
+let presets=[];
+try{presets=JSON.parse(localStorage.getItem("snapsheet-presets")||"[]");}catch(e){presets=[];}
+if(!Array.isArray(presets))presets=[];
+DEFAULT_PRESETS.slice().reverse().forEach(pr=>{if(!presets.some(p=>p.name===pr.name))presets.unshift({...pr,adj:{...pr.adj}});});
 function savePresets(){try{localStorage.setItem("snapsheet-presets",JSON.stringify(presets));}catch(e){}}
 function renderPresets(){
   const w=$("#presetChips");w.innerHTML="";
@@ -1325,7 +1348,15 @@ mmRange("gCW",v=>state.grid.cw=v);
 mmRange("gCH",v=>state.grid.ch=v);
 mmRange("pgMargin",v=>state.page.margin=v);
 mmRange("pgGap",v=>state.page.gap=v);
+function sizeChipBind(sel,wKey,hKey){$(sel).addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;
+  state[wKey][hKey[0]]=+b.dataset.w;state[wKey][hKey[1]]=+b.dataset.h;
+  const ids=wKey==="flow"?["fMaxW","fMaxH"]:["gCW","gCH"];
+  $("#"+ids[0]).value=state[wKey][hKey[0]];$("#"+ids[0]+"v").textContent=state[wKey][hKey[0]]+"mm";
+  $("#"+ids[1]).value=state[wKey][hKey[1]];$("#"+ids[1]+"v").textContent=state[wKey][hKey[1]]+"mm";relayout();});}
+sizeChipBind("#flowChips","flow",["maxW","maxH"]);
+sizeChipBind("#gridChips","grid",["cw","ch"]);
 $("#fRotate").addEventListener("change",e=>{state.flow.rotate=e.target.checked;relayout();});
+$("#pBorder").addEventListener("change",e=>{state.pol.border=e.target.checked;relayout();});
 $("#pDates").addEventListener("change",e=>{state.pol.dates=e.target.checked;renderPages();});
 $("#polChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;
   state.pol.pw=+b.dataset.w;state.pol.ph=+b.dataset.h;
@@ -1342,6 +1373,17 @@ $("#pgDpi").addEventListener("change",e=>{state.dpi=+e.target.value;
   $("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off.`;});
 $("#gdOn").addEventListener("change",e=>{state.guides.on=e.target.checked;renderPages();});
 $("#gdPreview").addEventListener("change",e=>{state.guides.preview=e.target.checked;renderPages();});
+const RANGE_IDS=["fMaxW","fMaxH","pW","pH","pBand","pPad","gCW","gCH","pgMargin","pgGap","bB","bC","bS","bSH","bR"];
+function enhanceRanges(){RANGE_IDS.forEach(id=>{const input=$("#"+id);if(!input||input.dataset.enhanced)return;
+  const val=$("#"+id+"v"),tools=el("span","rangeTools"),minus=document.createElement("button"),plus=document.createElement("button"),entry=document.createElement("input");
+  input.dataset.enhanced="1";minus.type=plus.type="button";minus.textContent="−";plus.textContent="+";minus.setAttribute("aria-label","Decrease value");plus.setAttribute("aria-label","Increase value");
+  entry.type="number";entry.className="rangeEntry";entry.min=input.min;entry.max=input.max;entry.step=input.step||"1";entry.value=input.value;entry.setAttribute("aria-label",id+" value");
+  const setValue=v=>{input.value=clamp(+v,+input.min,+input.max);input.dispatchEvent(new Event("input",{bubbles:true}));};
+  minus.onclick=()=>setValue(+input.value-(+input.step||1));plus.onclick=()=>setValue(+input.value+(+input.step||1));
+  entry.addEventListener("change",()=>setValue(entry.value));entry.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();entry.blur();}});
+  input.addEventListener("input",()=>{entry.value=input.value;});
+  input.after(tools);tools.append(minus,plus,entry,val);
+ });}
 $$(".sec>h3").forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("closed")));
 /* panel drawer (mobile) */
 $("#btnControls").onclick=()=>document.body.classList.toggle("panelOpen");
@@ -1373,6 +1415,7 @@ document.addEventListener("keydown",e=>{
 window.addEventListener("resize",debounce(()=>{if(state.layout&&state.photos.length)renderPages();},160));
 
 /* init */
+enhanceRanges();
 renderPresets();
 relayoutNow();
 renderFilm();
