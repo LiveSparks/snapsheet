@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <script defer id="heifLib" src="https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/libheif-wasm/libheif-bundle.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
   --bg:#101216; --bg2:#14171c; --panel:#191d24; --panel2:#20242e; --field:#12151b;
@@ -339,8 +340,9 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
   <div class="menuWrap">
     <button class="btn" id="btnExport" disabled>Export ▾</button>
     <div class="dropdown" id="exportMenu">
-      <button data-fmt="jpeg">Download sheets as JPG</button>
-      <button data-fmt="png">Download sheets as PNG</button>
+       <button data-fmt="jpeg">Download sheets as JPG</button>
+       <button data-fmt="png">Download sheets as PNG</button>
+       <button data-fmt="pdf">Download sheets as PDF</button>
       <div class="dnote" id="dpiNote">Rendered at 300 dpi — print at “actual size”, margins off.</div>
     </div>
   </div>
@@ -1186,14 +1188,18 @@ $("#btnPrint").onclick=async()=>{
   }
   hideOv();
   const w=L.W.toFixed(1),h=L.H.toFixed(1);
+  let printStarted=false;
+  const startPrint=()=>{if(printStarted||win.closed)return;printStarted=true;win.focus();win.print();};
+  win.addEventListener("load",()=>setTimeout(startPrint,150),{once:true});
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>SNAPSHEET print</title><style>
     @page{size:${w}mm ${h}mm;margin:0}html,body{margin:0;background:#fff}
     img{display:block;width:${w}mm;height:${h}mm;page-break-after:always}img:last-child{page-break-after:auto}
     .tip{position:fixed;z-index:9;top:10px;left:50%;transform:translateX(-50%);font:600 12px/1.4 system-ui;background:#111;color:#ffc832;padding:8px 14px;border-radius:8px}
     @media print{.tip{display:none}}</style></head><body>
     <div class="tip">Print at <b>Actual size / 100%</b> with margins OFF — paper ${Math.round(L.W)}×${Math.round(L.H)} mm</div>
-    ${imgs.map(s=>`<img src="${s}">`).join("")}</body></html>`);
+     ${imgs.map(s=>`<img src="${s}">`).join("")}</body></html>`);
   win.document.close();
+  setTimeout(startPrint,1200);
   toast("Rendered — choose “Actual size” in the print dialog");
 };
 $("#btnExport").onclick=e=>{e.stopPropagation();$("#exportMenu").classList.toggle("open");$("#helpMenu").classList.remove("open");};
@@ -1201,23 +1207,32 @@ $("#btnHelp").onclick=e=>{e.stopPropagation();$("#helpMenu").classList.toggle("o
 document.addEventListener("click",()=>{$("#exportMenu").classList.remove("open");$("#helpMenu").classList.remove("open");});
 $("#exportMenu").addEventListener("click",async e=>{
   const b=e.target.closest("[data-fmt]");if(!b)return;
-  const fmt=b.dataset.fmt,L=state.layout;
-  if(!L||!L.pages.length)return;
-  $("#exportMenu").classList.remove("open");
-  showOv("Exporting sheets");await ensureFonts();
-  const mime=fmt==="png"?"image/png":"image/jpeg",ext=fmt==="png"?"png":"jpg";
-  for(let i=0;i<L.pages.length;i++){
-    ovSet(i+1,L.pages.length);
-    const cv=await renderPageCanvas(L.pages[i],state.dpi,state.guides.on);
-    const blob=await new Promise(r=>cv.toBlob(r,mime,0.92));
-    const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download=`snapsheet-${state.page.size}-${i+1}of${L.pages.length}.${ext}`;
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-    await sleep(200);
-  }
-  hideOv();toast("Sheets downloaded — print at actual size");
-});
+   const fmt=b.dataset.fmt,L=state.layout;
+   if(!L||!L.pages.length)return;
+   if(fmt==="pdf"&&!window.jspdf?.jsPDF)return toast("PDF export is unavailable — check your connection");
+   $("#exportMenu").classList.remove("open");
+   showOv("Exporting sheets");await ensureFonts();
+   const isPdf=fmt==="pdf",orientation=L.W>=L.H?"landscape":"portrait";
+   const pdf=isPdf?new window.jspdf.jsPDF({orientation,unit:"mm",format:[L.W,L.H],compress:true}):null;
+   const mime=fmt==="png"?"image/png":"image/jpeg",ext=fmt==="png"?"png":"jpg";
+   for(let i=0;i<L.pages.length;i++){
+     ovSet(i+1,L.pages.length);
+     const cv=await renderPageCanvas(L.pages[i],state.dpi,state.guides.on);
+     if(isPdf){
+       if(i)pdf.addPage([L.W,L.H],orientation);
+       pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,L.W,L.H,undefined,"FAST");
+     }else{
+       const blob=await new Promise(r=>cv.toBlob(r,mime,0.92));
+       const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+       a.download=`snapsheet-${state.page.size}-${i+1}of${L.pages.length}.${ext}`;
+       document.body.appendChild(a);a.click();a.remove();
+       setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+       await sleep(200);
+     }
+   }
+   if(isPdf)pdf.save(`snapsheet-${state.page.size}.pdf`);
+   hideOv();toast(isPdf?"PDF downloaded":"Sheets downloaded — print at actual size");
+ });
 
 /* ═════════════════════════ batch adjust & presets ═════════════════════════ */
 function targetsFor(announce=true){
