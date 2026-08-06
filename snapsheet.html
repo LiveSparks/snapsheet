@@ -278,17 +278,19 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 #mIdx{font:11px var(--mono);color:var(--yl)}
 .mcard>header button{margin-left:auto;width:32px;height:32px;border-radius:8px;font-size:15px;color:var(--tx2)}
 .mcard>header button:hover{background:var(--panel2);color:#fff}
-.mbody{display:flex;min-height:0;flex:1}
+.mbody{display:flex;min-height:0;flex:1;overflow:hidden}
 .mstage{
-  flex:1;min-width:0;display:flex;align-items:center;justify-content:center;position:relative;padding:18px;
+  flex:1;min-width:0;display:flex;align-items:center;justify-content:center;position:relative;padding:18px;overflow:hidden;
   background:
     repeating-linear-gradient(0deg,transparent 0 23px,rgba(255,255,255,.03) 23px 24px),
     repeating-linear-gradient(90deg,transparent 0 23px,rgba(255,255,255,.03) 23px 24px),#14161b;
 }
-#mCv{max-width:100%;max-height:100%;border-radius:3px;box-shadow:0 12px 34px rgba(0,0,0,.55);touch-action:none;cursor:grab}
-#mCv:active{cursor:grabbing}
+#mCanvas{display:block;max-width:100%;max-height:100%;border-radius:3px;box-shadow:0 12px 34px rgba(0,0,0,.55);touch-action:none;cursor:grab}
+#mCanvas:active{cursor:grabbing}
 .mhint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font:10px var(--mono);letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;pointer-events:none}
-.mside{width:280px;flex:none;border-left:1px solid var(--line);padding:14px;overflow-y:auto}
+.mside{width:280px;min-width:0;flex:none;border-left:1px solid var(--line);padding:14px;overflow-y:auto}
+.mside .row{gap:5px}
+.mside .row input[type=range]{min-width:30px}
 .msec{margin-bottom:18px}
 .msec h4{font:10.5px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--cy);margin-bottom:9px}
 .msec h4::before{content:"▍";color:var(--mg);margin-right:4px}
@@ -597,7 +599,7 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
     </header>
     <div class="mbody">
       <div class="mstage" id="mStage">
-        <canvas id="mCv"></canvas>
+        <canvas id="mCanvas"></canvas>
         <div class="mhint" id="mHint">drag to move · wheel / pinch to zoom · double-tap resets</div>
       </div>
       <div class="mside">
@@ -1116,7 +1118,7 @@ function syncEditorControls(){
 async function editorDraw(){
   const p=state.P.get(editor.pid);if(!p)return;
   const token=++editor.token;
-  const stage=$("#mStage"),cv=$("#mCv"),ctx=cv.getContext("2d",{willReadFrequently:true});
+  const stage=$("#mStage"),cv=$("#mCanvas"),ctx=cv.getContext("2d",{willReadFrequently:true});
   const fm=frameMM();
   const dims=imageDims(p),turn=(p.rotation||0)%2!==0,rot=rotationDeg(p);
   const ar=fm?fm.w/fm.h:dims.w/dims.h;
@@ -1188,7 +1190,7 @@ $("#mClose").onclick=$("#mDone").onclick=closeEditor;
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();});
 /* gestures on editor canvas */
 (()=>{
-  const cv=$("#mCv");const pts=new Map();let start=null;
+  const cv=$("#mCanvas");const pts=new Map();let start=null;
   cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pts.size===2){const[a,b]=[...pts.values()];start={d:Math.hypot(a.x-b.x,a.y-b.y),z:state.P.get(editor.pid).crop.z};}});
   cv.addEventListener("pointermove",e=>{
