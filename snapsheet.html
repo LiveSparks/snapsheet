@@ -483,7 +483,6 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
         </div>
       </div>
       <div class="row">
-        <button class="btn accent" id="btnApply" style="flex:1;justify-content:center">Apply to target</button>
         <button class="btn tiny ghost" id="btnLoadSel" title="Copy adjustments from first selected photo into sliders">↩ Load</button>
       </div>
       <div class="row" style="margin-top:14px"><span class="flabel" style="letter-spacing:.1em;font:10.5px var(--mono);color:var(--tx3)">PRESETS</span></div>
@@ -1229,14 +1228,12 @@ function targetsFor(announce=true){
   return list;
 }
 function batchAdj(){return{b:+$("#bB").value,c:+$("#bC").value,s:+$("#bS").value,sh:+$("#bSH").value,r:+$("#bR").value};}
-function applyBatchAdjustments(announce=false){
-  const adj=batchAdj(),list=targetsFor(announce);
+function applyBatchAdjustments(){
+  const adj=batchAdj(),list=targetsFor(false);
   list.forEach(p=>p.adj={...adj});
   list.forEach(updatePhotoVisual);
   list.forEach(renderFilmDots);
-  if(announce)toast(`Applied to ${list.length} photo${list.length!==1?"s":""}`);
 }
-$("#btnApply").onclick=()=>applyBatchAdjustments(true);
 $("#btnLoadSel").onclick=()=>{
   const p=state.photos.find(q=>state.sel.has(q.id))||state.photos.find(q=>q.included);
   if(!p)return toast("Nothing to load from");
