@@ -542,6 +542,10 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
       </div>
       <div class="mside">
         <section class="msec">
+          <h4>Rotate image</h4>
+          <div class="row" style="margin-top:2px"><button class="btn tiny ghost" id="mRotateLeft">Rotate left</button><button class="btn tiny ghost" id="mRotateRight">Rotate right</button></div>
+        </section>
+        <section class="msec">
           <h4>Adjust</h4>
           <div class="row" style="margin-top:2px"><label style="width:70px">Brightness</label><input type="range" id="mB" min="0" max="200" value="100"><span class="val" id="mBv">100%</span></div>
           <div class="row"><label style="width:70px">Contrast</label><input type="range" id="mC" min="0" max="200" value="100"><span class="val" id="mCv">100%</span></div>
@@ -552,7 +556,7 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
         </section>
         <section class="msec" id="mCropSec">
           <h4>Crop in frame</h4>
-          <div class="row" style="margin-top:2px"><label style="width:70px">Zoom</label><input type="range" id="mZoom" min="100" max="500" value="100"><span class="val" id="mZoomv">100%</span></div>
+          <div class="row" style="margin-top:2px"><label style="width:70px">Zoom</label><input type="range" id="mZoom" min="50" max="500" value="100"><span class="val" id="mZoomv">100%</span></div>
           <div class="row"><button class="btn tiny ghost" id="mResetCrop">Reset crop</button></div>
         </section>
         <section class="msec" id="mCapSec">
@@ -603,6 +607,7 @@ const state={
   guides:{on:true,style:"marks",color:"#e0242f",preview:true},
   dpi:300, target:"sel", layout:null,
 };
+const MIN_ZOOM=.5;
 const DEF_ADJ=()=>({b:100,c:100,s:100,sh:0,r:10});
 const adjActive=p=>p.adj.b!==100||p.adj.c!==100||p.adj.s!==100||p.adj.sh>0;
 const adjCss=p=>`brightness(${p.adj.b}%) contrast(${p.adj.c}%) saturate(${p.adj.s}%)`;
@@ -619,7 +624,7 @@ async function getBitmap(p,needPx){
   const c=bmpCache.get(p.id);
   if(c&&c.px>=needPx*0.98)return c.bmp;
   let bmp=null;
-  const ar=p.w/p.h; let rw=Math.min(p.w,Math.ceil(needPx)), rh=Math.min(p.h,Math.ceil(needPx/ar));
+  const dims=imageDims(p),ar=dims.w/dims.h; let rw=Math.min(dims.w,Math.ceil(needPx)), rh=Math.min(dims.h,Math.ceil(needPx/ar));
   try{ bmp=await createImageBitmap(p.printBlob,{resizeWidth:rw,resizeHeight:rh,resizeQuality:"high"}); }
   catch(e1){ try{ bmp=await createImageBitmap(p.printBlob); }
     catch(e2){ const url=URL.createObjectURL(p.printBlob); const img=await loadImg(url); URL.revokeObjectURL(url); bmp=img; } }
@@ -755,12 +760,14 @@ async function importFile(file){
   if(url)URL.revokeObjectURL(url);
   const p={id:uid(),name:file.name,w:nw,h:nh,dateMs:file.lastModified||Date.now(),
     printBlob:(blob!==file)?blob:file, workBlob, thumbURL:URL.createObjectURL(thumbBlob),
-    adj:DEF_ADJ(),crop:{z:1,x:0,y:0},caption:"",included:true};
+    adj:DEF_ADJ(),crop:{z:1,x:0,y:0},rotation:0,caption:"",included:true};
   state.photos.push(p);state.P.set(p.id,p);
 }
 
 /* ═════════════════════════ layout engines ═════════════════════════ */
 const EPS=0.02;
+function imageDims(p){return (Math.abs((p.rotation||0)%2)===1)?{w:p.h,h:p.w}:{w:p.w,h:p.h};}
+function rotationDeg(p){return ((p.rotation||0)%4+4)%4*90;}
 function mkF(p,x,y,w,h,crop){return{pid:p.id,img:{x,y,w,h},cut:{x,y,w,h},cap:null,crop}}
 function layFlow(photos,W,H){
   const m=state.page.margin,gap=state.page.gap,iw=W-2*m,ih=H-2*m;
@@ -848,21 +855,25 @@ const frameMap=new Map();
 const dpr=()=>Math.min(2.5,window.devicePixelRatio||1);
 function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 function coverGeom(p,fw,fh,z){
-  const s0=Math.max(fw/p.w,fh/p.h)*z, dw=p.w*s0, dh=p.h*s0;
-  const mx=(dw-fw)/2,my=(dh-fh)/2;
+  const dims=imageDims(p);
+  const s0=Math.max(fw/dims.w,fh/dims.h)*z, dw=dims.w*s0, dh=dims.h*s0;
+  const mx=Math.max(0,(dw-fw)/2),my=Math.max(0,(dh-fh)/2);
   return{dw,dh,left:(fw-dw)/2+clamp(p.crop.x,-mx,mx),top:(fh-dh)/2+clamp(p.crop.y,-my,my)};
 }
 function clampCrop(p){
   const fm=frameMM(); if(!fm||!fm.cover)return;
-  const s0=Math.max(fm.w/p.w,fm.h/p.h)*p.crop.z;
-  const mx=(p.w*s0-fm.w)/2,my=(p.h*s0-fm.h)/2;
+  const dims=imageDims(p),s0=Math.max(fm.w/dims.w,fm.h/dims.h)*p.crop.z;
+  const mx=Math.max(0,(dims.w*s0-fm.w)/2),my=Math.max(0,(dims.h*s0-fm.h)/2);
   p.crop.x=clamp(p.crop.x,-mx,mx); p.crop.y=clamp(p.crop.y,-my,my);
 }
 function applyFrameImg(img,p,f,K){
+  const dims=imageDims(p),turn=(p.rotation||0)%2!==0,rot=rotationDeg(p);
   let left,top,dw,dh;
   if(f.crop){const g=coverGeom(p,f.img.w,f.img.h,p.crop.z);dw=g.dw*K;dh=g.dh*K;left=g.left*K;top=g.top*K;}
-  else{const s=Math.min(f.img.w/p.w,f.img.h/p.h);dw=p.w*s*K;dh=p.h*s*K;left=(f.img.w*K-dw)/2;top=(f.img.h*K-dh)/2;}
-  img.style.left=left+"px";img.style.top=top+"px";img.style.width=dw+"px";img.style.height=dh+"px";
+  else{const s=Math.min(f.img.w/dims.w,f.img.h/dims.h);dw=dims.w*s*K;dh=dims.h*s*K;left=(f.img.w*K-dw)/2;top=(f.img.h*K-dh)/2;}
+  const iw=turn?dh:dw,ih=turn?dw:dh;
+  img.style.left=(left+dw/2-iw/2)+"px";img.style.top=(top+dh/2-ih/2)+"px";img.style.width=iw+"px";img.style.height=ih+"px";
+  img.style.transform=rot?`rotate(${rot}deg)`:"none";
   img.style.filter=adjActive(p)?adjCss(p):"none";
 }
 function setCapEl(c,p,f,K){
@@ -1026,7 +1037,8 @@ async function editorDraw(){
   const token=++editor.token;
   const stage=$("#mStage"),cv=$("#mCv"),ctx=cv.getContext("2d",{willReadFrequently:true});
   const fm=frameMM();
-  const ar=fm?fm.w/fm.h:p.w/p.h;
+  const dims=imageDims(p),turn=(p.rotation||0)%2!==0,rot=rotationDeg(p);
+  const ar=fm?fm.w/fm.h:dims.w/dims.h;
   const bw=stage.clientWidth-36,bh=stage.clientHeight-46;
   let cw=Math.min(bw,bh*ar),ch=cw/ar;
   const D=dpr();
@@ -1037,13 +1049,14 @@ async function editorDraw(){
   const cover=fm&&fm.cover;
   let dw,dh,left,top;
   if(cover){const g=coverGeom(p,fw,fh,p.crop.z);dw=g.dw*Km;dh=g.dh*Km;left=g.left*Km;top=g.top*Km;}
-  else{const s=Math.min(cw/p.w,ch/p.h);dw=p.w*s;dh=p.h*s;left=(cw-dw)/2;top=(ch-dh)/2;}
+  else{const s=Math.min(cw/dims.w,ch/dims.h);dw=dims.w*s;dh=dims.h*s;left=(cw-dw)/2;top=(ch-dh)/2;}
   ctx.setTransform(D,0,0,D,0,0);
   ctx.fillStyle="#1c1f26";ctx.fillRect(0,0,cw,ch);
   const bmp=await getBitmap(p,Math.max(dw,dh)*D);
   if(token!==editor.token)return;
-  const capPx=Math.min(1,Math.sqrt(16e6/(dw*dh)));
-  const ow=Math.max(4,Math.round(dw*capPx)),oh=Math.max(4,Math.round(dh*capPx));
+  const srcW=turn?dh:dw,srcH=turn?dw:dh;
+  const capPx=Math.min(1,Math.sqrt(16e6/(srcW*srcH)));
+  const ow=Math.max(4,Math.round(srcW*capPx)),oh=Math.max(4,Math.round(srcH*capPx));
   const off=document.createElement("canvas");off.width=ow;off.height=oh;
   const octx=off.getContext("2d",{willReadFrequently:p.adj.sh>0||!CANVAS_FILTER});
   if(CANVAS_FILTER)octx.filter=adjCss(p);
@@ -1052,7 +1065,8 @@ async function editorDraw(){
   if(!CANVAS_FILTER&&adjActive(p))pixelAdjust(octx,ow,oh,p.adj);
   if(p.adj.sh>0)unsharpCanvas(off,p.adj.sh/100,Math.max(0.6,sharpPx(p.adj.r,Km*capPx)));
   ctx.imageSmoothingQuality="high";
-  ctx.drawImage(off,left,top,dw,dh);
+  if(rot){ctx.save();ctx.translate(left+dw/2,top+dh/2);ctx.rotate(rot*Math.PI/180);ctx.drawImage(off,-srcW/2,-srcH/2,srcW,srcH);ctx.restore();}
+  else ctx.drawImage(off,left,top,dw,dh);
   ctx.strokeStyle="rgba(255,255,255,.14)";ctx.lineWidth=1;
   ctx.strokeRect(left+.5,top+.5,dw-1,dh-1);
   cv._Km=Km;
@@ -1068,8 +1082,12 @@ const editorDrawSoon=(()=>{let q=false;return()=>{if(q)return;q=true;requestAnim
   });
 });
 $("#mResetAdj").onclick=()=>{const p=state.P.get(editor.pid);if(!p)return;p.adj=DEF_ADJ();syncEditorControls();updatePhotoVisual(p);editorDraw();};
+function rotateEditor(dir){const p=state.P.get(editor.pid);if(!p)return;
+  p.rotation=((p.rotation||0)+dir+4)%4;clampCrop(p);updatePhotoVisual(p);editorDrawSoon();}
+$("#mRotateLeft").onclick=()=>rotateEditor(-1);
+$("#mRotateRight").onclick=()=>rotateEditor(1);
 $("#mZoom").addEventListener("input",e=>{const p=state.P.get(editor.pid);if(!p)return;
-  p.crop.z=clamp(+e.target.value/100,1,5);clampCrop(p);
+  p.crop.z=clamp(+e.target.value/100,MIN_ZOOM,5);clampCrop(p);
   $("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";updatePhotoVisual(p);editorDrawSoon();});
 $("#mResetCrop").onclick=()=>{const p=state.P.get(editor.pid);if(!p)return;p.crop={z:1,x:0,y:0};syncEditorControls();updatePhotoVisual(p);editorDraw();};
 $("#mCap").addEventListener("input",e=>{const p=state.P.get(editor.pid);if(!p)return;p.caption=e.target.value;updatePhotoVisual(p);renderFilmDots(p);});
@@ -1097,8 +1115,8 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();
     const p=state.P.get(editor.pid);if(!p)return;
     const fm=frameMM();if(!(fm&&fm.cover))return;
     const prev=pts.get(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pts.size===2&&start){const[a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
-      p.crop.z=clamp(start.z*d/start.d,1,5);clampCrop(p);
+     if(pts.size===2&&start){const[a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
+       p.crop.z=clamp(start.z*d/start.d,MIN_ZOOM,5);clampCrop(p);
       $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
       updatePhotoVisual(p);editorDrawSoon();return;}
     if(pts.size===1){const Km=cv._Km||1;p.crop.x+=(e.clientX-prev.x)/Km;p.crop.y+=(e.clientY-prev.y)/Km;clampCrop(p);
@@ -1108,7 +1126,7 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();
   cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
   cv.addEventListener("wheel",e=>{e.preventDefault();const p=state.P.get(editor.pid);if(!p)return;
     const fm=frameMM();if(!(fm&&fm.cover))return;
-    p.crop.z=clamp(p.crop.z*Math.exp(-e.deltaY*0.0014),1,5);clampCrop(p);
+     p.crop.z=clamp(p.crop.z*Math.exp(-e.deltaY*0.0014),MIN_ZOOM,5);clampCrop(p);
     $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
     updatePhotoVisual(p);editorDrawSoon();},{passive:false});
   cv.addEventListener("dblclick",()=>{const p=state.P.get(editor.pid);if(!p)return;p.crop={z:1,x:0,y:0};syncEditorControls();updatePhotoVisual(p);editorDraw();});
@@ -1127,10 +1145,11 @@ async function renderPageCanvas(pg,dpi,withGuides){
   ctx.fillStyle="#ffffff";ctx.fillRect(0,0,cv.width,cv.height);
   for(const f of pg.frames){
     const p=state.P.get(f.pid);if(!p)continue;
-    const r=f.img;let dw,dh,left,top;
+    const r=f.img,dims=imageDims(p),turn=(p.rotation||0)%2!==0,rot=rotationDeg(p);let dw,dh,left,top;
     if(f.crop){const g=coverGeom(p,r.w,r.h,p.crop.z);dw=g.dw;dh=g.dh;left=g.left;top=g.top;}
-    else{const s=Math.min(r.w/p.w,r.h/p.h);dw=p.w*s;dh=p.h*s;left=(r.w-dw)/2;top=(r.h-dh)/2;}
-    const pxW=dw*K,pxH=dh*K;
+    else{const s=Math.min(r.w/dims.w,r.h/dims.h);dw=dims.w*s;dh=dims.h*s;left=(r.w-dw)/2;top=(r.h-dh)/2;}
+    const srcW=turn?dh:dw,srcH=turn?dw:dh;
+    const pxW=srcW*K,pxH=srcH*K;
     const capS=Math.min(1,Math.sqrt(20e6/(pxW*pxH)));
     const ow=Math.max(4,Math.round(pxW*capS)),oh=Math.max(4,Math.round(pxH*capS));
     const off=document.createElement("canvas");off.width=ow;off.height=oh;
@@ -1143,7 +1162,8 @@ async function renderPageCanvas(pg,dpi,withGuides){
     if(p.adj.sh>0)unsharpCanvas(off,p.adj.sh/100,Math.max(0.6,sharpPx(p.adj.r,K*capS)));
     ctx.save();ctx.beginPath();ctx.rect(r.x*K,r.y*K,r.w*K,r.h*K);ctx.clip();
     ctx.imageSmoothingQuality="high";
-    ctx.drawImage(off,(r.x+left)*K,(r.y+top)*K,pxW,pxH);
+    if(rot){ctx.save();ctx.translate((r.x+left+dw/2)*K,(r.y+top+dh/2)*K);ctx.rotate(rot*Math.PI/180);ctx.drawImage(off,-pxW/2,-pxH/2,pxW,pxH);ctx.restore();}
+    else ctx.drawImage(off,(r.x+left)*K,(r.y+top)*K,pxW,pxH);
     ctx.restore();
     if(f.cap){const t=capText(p);
       if(t){const fs=Math.min(f.cap.h*K*0.62,f.cap.w*K/(Math.max(3,t.length)*0.42));
