@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101216">
+<title>SNAPSHEET — photo sheet composer for inkjet printing</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23ffc832'/><circle cx='16' cy='16' r='5' fill='%23101216'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<script defer id="heifLib" src="https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/libheif-wasm/libheif-bundle.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ══════════ TOP BAR ══════════ -->
+<header id="top">
+  <div class="brand">
+    <span class="regmark" aria-hidden="true"></span>
+    <div><h1>SNAP<em>SHEET</em></h1><div class="tag">Photo Sheet Composer</div></div>
+  </div>
+  <div id="stats" aria-live="polite"></div>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="btnControls">☰ Controls</button>
+  <label class="btn accent" for="fileInput">＋ Add photos</label>
+  <input type="file" id="fileInput" multiple accept="image/*,.heic,.heif" hidden>
+  <div class="menuWrap">
+    <button class="btn primary" id="btnPrint" disabled>⎙ Print</button>
+  </div>
+  <div class="menuWrap">
+    <button class="btn" id="btnExport" disabled>Export ▾</button>
+    <div class="dropdown" id="exportMenu">
+       <button data-fmt="jpeg">Download sheets as JPG</button>
+       <button data-fmt="png">Download sheets as PNG</button>
+       <button data-fmt="pdf">Download sheets as PDF</button>
+      <div class="dnote" id="dpiNote">Rendered at 300 dpi — print at “actual size”, margins off.</div>
+    </div>
+  </div>
+  <div class="menuWrap">
+    <button class="btn ghost" id="btnHelp">?</button>
+    <div class="dropdown" id="helpMenu" style="min-width:280px">
+      <div class="dnote" style="padding:10px;line-height:1.7">
+        • Everything runs <b style="color:var(--tx)">locally</b> — photos never leave this device.<br>
+        • HEIC/HEIF from iPhones is converted automatically.<br>
+        • Tap any photo on a sheet to crop, move, zoom &amp; adjust it.<br>
+        • In the print dialog choose <b style="color:var(--tx)">Actual&nbsp;size / 100%</b> and <b style="color:var(--tx)">Margins: none</b>.<br>
+        • For borderless photo paper, enable borderless in the printer driver.
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ CONTROL PANEL ══════════ -->
+<aside id="panel">
+
+  <div class="sec" id="secLayout">
+    <h3>Layout <span class="chev">▾</span></h3>
+    <div class="bd">
+      <div class="seg modeSeg" id="modeSeg">
+        <button data-mode="flow" title="Original aspect ratios, packed tight">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="7"/><rect x="8" y="1" width="5" height="4"/><rect x="1" y="10" width="4" height="3"/><rect x="7" y="7" width="6" height="6"/></svg>
+          Flow</button>
+        <button data-mode="polaroid" class="on">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="10" height="12"/><rect x="4" y="3" width="6" height="6" fill="currentColor" stroke="none"/><line x1="4" y1="11" x2="10" y2="11"/></svg>
+          Polaroid</button>
+        <button data-mode="grid">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="5"/><rect x="8" y="1" width="5" height="5"/><rect x="1" y="8" width="5" height="5"/><rect x="8" y="8" width="5" height="5"/></svg>
+          Grid</button>
+      </div>
+
+        <div id="optFlow" hidden>
+          <div class="row"><label>Max width</label><input type="range" id="fMaxW" min="15" max="280" value="92"><span class="val" id="fMaxWv">92mm</span></div>
+          <div class="row"><label>Max height</label><input type="range" id="fMaxH" min="15" max="280" value="92"><span class="val" id="fMaxHv">92mm</span></div>
+          <div class="chips" id="flowChips">
+            <button class="chip" data-w="102" data-h="152">4×6 in</button>
+            <button class="chip" data-w="35" data-h="45">Passport</button>
+          </div>
+          <label class="check"><input type="checkbox" id="fRotate" checked> Allow 90° rotation (packs tighter)</label>
+        <p class="hintline">Photos keep their aspect ratio and are shelf-packed with as little wasted paper as possible.</p>
+      </div>
+
+      <div id="optPolaroid">
+        <div class="row"><label>Photo width</label><input type="range" id="pW" min="20" max="180" value="62"><span class="val" id="pWv">62mm</span></div>
+        <div class="row"><label>Photo height</label><input type="range" id="pH" min="20" max="180" value="62"><span class="val" id="pHv">62mm</span></div>
+          <div class="chips" id="polChips">
+          <button class="chip" data-w="62" data-h="62">62×62</button>
+          <button class="chip" data-w="79" data-h="79">79×79</button>
+          <button class="chip" data-w="89" data-h="64">89×64</button>
+          </div>
+          <div class="row"><label>Date band</label><input type="range" id="pBand" min="0" max="40" value="16"><span class="val" id="pBandv">16mm</span></div>
+          <div class="row"><label>White border</label><input type="range" id="pPad" min="0" max="15" value="5"><span class="val" id="pPadv">5mm</span></div>
+          <label class="check"><input type="checkbox" id="pBorder" checked> Add white border</label>
+          <label class="check"><input type="checkbox" id="pDates" checked> Print file dates in the band</label>
+        <p class="hintline">Photos are cropped to the frame — tap one on the sheet to reposition or zoom. Leave the band blank to write on it by hand.</p>
+      </div>
+
+        <div id="optGrid" hidden>
+          <div class="row"><label>Cell width</label><input type="range" id="gCW" min="20" max="280" value="60"><span class="val" id="gCWv">60mm</span></div>
+          <div class="row"><label>Cell height</label><input type="range" id="gCH" min="20" max="280" value="45"><span class="val" id="gCHv">45mm</span></div>
+          <div class="chips" id="gridChips">
+            <button class="chip" data-w="102" data-h="152">4×6 in</button>
+            <button class="chip" data-w="35" data-h="45">Passport</button>
+          </div>
+        <div class="row"><label>Fit</label>
+          <div class="seg" style="flex:1" id="gFitSeg">
+            <button data-fit="cover" class="on cy">Crop to fill</button>
+            <button data-fit="contain">Fit inside</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec" id="secPage">
+    <h3>Paper <span class="chev">▾</span></h3>
+    <div class="bd">
+      <div class="row" style="margin-top:2px"><label style="flex:1">Size
+        <select id="pgSize" style="margin-top:5px">
+          <option value="a4" selected>A4 · 210×297</option>
+          <option value="a5">A5 · 148×210</option>
+          <option value="a3">A3 · 297×420</option>
+          <option value="b5">B5 · 176×250</option>
+          <option value="letter">Letter · 216×279</option>
+          <option value="legal">Legal · 216×356</option>
+          <option value="p1015">10×15 cm / 4×6″</option>
+          <option value="p1318">13×18 cm / 5×7″</option>
+          <option value="custom">Custom…</option>
+        </select></label>
+      </div>
+      <div class="twoCol" id="customDims" hidden style="margin-top:8px">
+        <div><span class="flabel">Width mm</span><input type="number" id="pgCW" min="40" max="600" value="210"></div>
+        <div><span class="flabel">Height mm</span><input type="number" id="pgCH" min="40" max="600" value="297"></div>
+      </div>
+      <div class="row"><label>Orient</label>
+        <div class="seg" style="flex:1" id="orientSeg">
+          <button data-o="auto" class="on cy">Auto</button>
+          <button data-o="portrait">▯</button>
+          <button data-o="landscape">▭</button>
+        </div>
+      </div>
+      <div class="row"><label>Page margin</label><input type="range" id="pgMargin" min="0" max="40" value="8"><span class="val" id="pgMarginv">8mm</span></div>
+      <div class="row"><label>Spacing</label><input type="range" id="pgGap" min="0" max="20" value="3"><span class="val" id="pgGapv">3mm</span></div>
+      <div class="row"><label>Print quality</label>
+        <select id="pgDpi" style="flex:1"><option value="150">Draft · 150 dpi</option><option value="300" selected>Photo · 300 dpi</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec" id="secGuides">
+    <h3>Cut guides <span class="chev">▾</span></h3>
+    <div class="bd">
+      <label class="check" style="margin-top:2px"><input type="checkbox" id="gdOn" checked> Print guides on sheets</label>
+      <div class="row"><label>Style</label>
+        <div class="seg" style="flex:1" id="gdStyleSeg">
+           <button data-s="marks" class="on cy">Crop marks</button>
+           <button data-s="lines">Full lines</button>
+           <button data-s="edge">Edge marks</button>
+        </div>
+      </div>
+      <div class="row"><label>Ink</label>
+        <div class="swatches" id="gdColors">
+          <button class="sw" data-c="#111418" style="background:#111418" title="Black"></button>
+          <button class="sw" data-c="#8a93a3" style="background:#8a93a3" title="Grey"></button>
+          <button class="sw on" data-c="#e0242f" style="background:#e0242f" title="Red"></button>
+          <button class="sw" data-c="#2563eb" style="background:#2563eb" title="Blue"></button>
+          <button class="sw" data-c="#16a34a" style="background:#16a34a" title="Green"></button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="gdPreview" checked> Show in preview</label>
+    </div>
+  </div>
+
+  <div class="sec" id="secAdjust">
+    <h3>Adjust &amp; presets <span class="chev">▾</span></h3>
+    <div class="bd">
+      <div class="row" style="margin-top:2px"><label style="width:74px">Brightness</label><input type="range" id="bB" min="0" max="200" value="100"><span class="val" id="bBv">100%</span></div>
+      <div class="row"><label style="width:74px">Contrast</label><input type="range" id="bC" min="0" max="200" value="100"><span class="val" id="bCv">100%</span></div>
+      <div class="row"><label style="width:74px">Saturation</label><input type="range" id="bS" min="0" max="200" value="100"><span class="val" id="bSv">100%</span></div>
+      <div class="row"><label style="width:74px">Sharpen</label><input type="range" id="bSH" min="0" max="150" value="0"><span class="val" id="bSHv">0%</span></div>
+      <div class="row"><label style="width:74px">Sharp radius</label><input type="range" id="bR" min="3" max="25" value="10"><span class="val" id="bRv">1.0</span></div>
+      <div class="row">
+        <div class="seg" style="flex:1" id="targetSeg">
+          <button data-t="sel" class="on cy" id="tgtSel">Selected</button>
+          <button data-t="all">All photos</button>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn tiny ghost" id="btnLoadSel" title="Copy adjustments from first selected photo into sliders">↩ Load</button>
+      </div>
+      <div class="row" style="margin-top:14px"><span class="flabel" style="letter-spacing:.1em;font:10.5px var(--mono);color:var(--tx3)">PRESETS</span></div>
+      <div class="chips" id="presetChips"></div>
+      <div class="presetSave">
+        <input type="text" id="presetName" placeholder="Preset name…" maxlength="24">
+        <button class="btn tiny" id="btnSavePreset">Save</button>
+      </div>
+      <p class="hintline">Save the sliders above as a named preset, then apply it to your selection or the whole roll in one tap.</p>
+    </div>
+  </div>
+</aside>
+<div id="backdrop"></div>
+
+<!-- ══════════ STAGE ══════════ -->
+<main id="stage">
+  <div id="pagesWrap"></div>
+  <div id="empty">
+    <div class="dz" id="dropZone">
+      <div class="pols" aria-hidden="true"><span class="pol"><i></i></span><span class="pol"><i></i></span><span class="pol"><i></i></span></div>
+      <h2>DROP PHOTOS.<br><span>COMPOSE A SHEET.</span> PRINT.</h2>
+      <p>Arrange a roll of pictures onto A4 (or any paper) as flow-packed prints, polaroids with dates, or a tidy grid — with cut guides and per-photo edits.</p>
+      <div class="btns">
+        <label class="btn accent" for="fileInput">Choose photos</label>
+        <button class="btn ghost" id="btnPaste">or paste from clipboard</button>
+      </div>
+      <div class="fmts">JPG · PNG · WEBP · GIF · HEIC/HEIF &nbsp;—&nbsp; processed on-device, nothing uploads</div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════ FILM STRIP ══════════ -->
+<footer id="stripBar">
+  <div class="stripHead">
+    <span id="stripCount">0 photos</span>
+    <span class="sp"></span>
+    <button class="btn tiny ghost" id="btnSelAll">Select all</button>
+    <button class="btn tiny ghost" id="btnSelNone">None</button>
+    <button class="btn tiny ghost" id="btnClearAll" style="color:var(--mg)">Clear roll</button>
+  </div>
+  <div id="film"><div class="filmEmpty">Your roll is empty — add photos above.</div></div>
+</footer>
+
+<!-- ══════════ PHOTO EDITOR MODAL ══════════ -->
+<div id="modal" hidden>
+  <div class="mcard" role="dialog" aria-modal="true">
+    <header>
+      <span id="mName" class="mono"></span>
+      <span id="mIdx" class="mono"></span>
+      <button id="mClose" title="Close (Esc)">✕</button>
+    </header>
+    <div class="mbody">
+      <div class="mstage" id="mStage">
+        <canvas id="mCanvas"></canvas>
+        <div class="mhint" id="mHint">drag to move · wheel / pinch to zoom · double-tap resets</div>
+      </div>
+      <div class="mside">
+        <section class="msec">
+          <h4>Rotate image</h4>
+          <div class="row" style="margin-top:2px"><button class="btn tiny ghost" id="mRotateLeft">Rotate left</button><button class="btn tiny ghost" id="mRotateRight">Rotate right</button></div>
+        </section>
+        <section class="msec">
+          <h4>Adjust</h4>
+          <div class="row" style="margin-top:2px"><label style="width:70px">Brightness</label><input type="range" id="mB" min="0" max="200" value="100"><span class="val" id="mBv">100%</span></div>
+          <div class="row"><label style="width:70px">Contrast</label><input type="range" id="mC" min="0" max="200" value="100"><span class="val" id="mCv">100%</span></div>
+          <div class="row"><label style="width:70px">Saturation</label><input type="range" id="mS" min="0" max="200" value="100"><span class="val" id="mSv">100%</span></div>
+          <div class="row"><label style="width:70px">Sharpen</label><input type="range" id="mSH" min="0" max="150" value="0"><span class="val" id="mSHv">0%</span></div>
+          <div class="row"><label style="width:70px">Radius</label><input type="range" id="mR" min="3" max="25" value="10"><span class="val" id="mRv">1.0</span></div>
+          <div class="row"><button class="btn tiny ghost" id="mResetAdj">Reset adjustments</button></div>
+        </section>
+        <section class="msec" id="mCropSec">
+          <h4>Crop in frame</h4>
+          <div class="row" style="margin-top:2px"><label style="width:70px">Zoom</label><input type="range" id="mZoom" min="50" max="500" value="100"><span class="val" id="mZoomv">100%</span></div>
+          <div class="row"><button class="btn tiny ghost" id="mResetCrop">Reset crop</button></div>
+        </section>
+        <section class="msec" id="mCapSec">
+          <h4>Caption / date</h4>
+          <input type="text" id="mCap" maxlength="42" placeholder="e.g. Lisbon · 06.08.2026">
+          <div class="row"><button class="btn tiny ghost" id="mDateBtn">Use file date</button><button class="btn tiny ghost" id="mCapClear">Clear</button></div>
+        </section>
+        <section class="msec">
+          <label class="check" style="margin-top:0"><input type="checkbox" id="mInc" checked> Included in layout</label>
+        </section>
+      </div>
+    </div>
+    <footer>
+      <button class="btn" id="mPrev">← Prev</button>
+      <button class="btn" id="mNext">Next →</button>
+      <span class="sp"></span>
+      <button class="btn primary" id="mDone">Done</button>
+    </footer>
+  </div>
+</div>
+
+<div id="overlay" hidden>
+  <div class="ovCard"><h3 id="ovTitle">Working…</h3><div class="ovBar"><i id="ovBarFill"></i></div><div id="ovText"></div></div>
+</div>
+<div id="toasts"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
