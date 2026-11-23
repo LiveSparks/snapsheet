@@ -21,17 +21,44 @@ Printing a stack of phone photos at home usually means fighting a word processor
 
 ## Features
 
-| | |
-|---|---|
-| **Four layout modes** | **Flow** packs photos at their original proportions with as little wasted paper as possible. **Polaroid** adds a white border and a date or caption band. **Grid** uses fixed cells (crop to fill or fit inside). **Free** lets you place and size each photo yourself. |
-| **Freeform canvas** | Drag photos (even onto another sheet), resize them with handles, snap to margins, the page centre, other photos and the sheet spacing, and select several at once with Shift-click or a drag-box. Then align, distribute, change the stacking order, auto-arrange, and undo or redo. |
-| **Preset & custom sizes** | Passport, 2×2″, Instax mini, wallet, 3.5×5″, 4×6″, 5×7″, A6, A5, 8×10″ and more, or type any size in mm or inches. Sizes can follow each photo's orientation, and you can save your own sizes. |
-| **Per-photo editing** | Crop and zoom inside the frame, rotate, adjust brightness, contrast, saturation and sharpening, and add captions. Batch-apply adjustment presets to a selection or the whole roll. |
-| **Print-accurate output** | Paper sizes from A3 to 4×6″ (or custom), margins, spacing, and auto orientation that picks whichever uses fewer sheets. Rendering goes from 150 to 600+ dpi, with cut guides as crop marks, full lines or edge marks in a choice of ink colours. |
-| **Export & print** | Download sheets as JPG, PNG or a multi-page PDF, or print directly at actual size. |
-| **Every format** | JPG, PNG, WebP, GIF and iPhone HEIC/HEIF, by file picker, drag and drop, or paste. |
-| **Picks up where you left off** | Photos, edits and layouts are saved in your browser (IndexedDB) and survive a reload. Press **New** to start over. |
-| **Private by design** | No server, no account, no tracking. Your photos never leave the device. |
+**Layouts**
+- **Polaroid:** white border plus a date or caption band, in handwritten-style lettering
+- **Grid:** fixed cells, crop to fill or fit inside
+- **Flow:** keeps each photo's proportions and packs tightly to save paper
+- **Free:** place and size every photo yourself
+
+**Freeform canvas**
+- Drag, resize and move photos between sheets
+- Snaps to margins, page centre, other photos and the spacing gap
+- Multi-select, then align, distribute, auto-arrange or change stacking order
+- Arrow-key nudging, undo and redo
+
+**Sizes & paper**
+- Presets from passport to 8×10″, or any custom size in mm or inches
+- Sizes can follow each photo's orientation; save your own
+- A3 to 4×6″ paper or custom, with adjustable margins and spacing
+- Auto orientation picks whichever uses fewer sheets
+
+**Printing**
+- Cut guides as crop marks, full lines or edge marks, in five ink colours
+- Show or hide guides in the preview, separately from print
+- 150 to 600+ dpi rendering at exact physical size
+- Print directly, or export JPG, PNG or a multi-page PDF
+- Live sheet, photo and paper-coverage counts
+
+**Photos**
+- JPG, PNG, WebP, GIF and iPhone HEIC/HEIF
+- Add with the file picker, drag and drop, or paste
+- Crop and zoom in frame, rotate, adjust colour and sharpening
+- Per-photo captions or automatic file dates
+- Save adjustment presets and apply them in one tap
+- Hide a photo from the layout without removing it
+
+**Convenience**
+- Your work survives a reload; **New** starts a blank project
+- Settings are remembered between visits
+- Works on phones and tablets
+- Runs entirely on your device: no account, no uploads
 
 ## Screenshots
 
