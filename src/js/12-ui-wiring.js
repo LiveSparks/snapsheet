@@ -61,7 +61,7 @@ function enhanceRanges(){RANGE_IDS.forEach(id=>{const input=$("#"+id);if(!input|
   minus.onclick=()=>setValue(+input.value-(+input.step||1));plus.onclick=()=>setValue(+input.value+(+input.step||1));
   entry.addEventListener("change",()=>setValue(entry.value));entry.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();entry.blur();}});
   input.addEventListener("input",()=>{entry.value=input.value;});
-  input.after(tools);tools.append(minus,plus,entry,val);
+  input.after(tools);tools.append(minus,plus,entry,val);input.parentElement.classList.add("rangeRow");
  });}
 function restoreControls(){
   const mark=(sel,attr,value)=>{$$(sel+" button").forEach(b=>b.classList.toggle("on",b.dataset[attr]===value));};
@@ -81,9 +81,32 @@ function restoreControls(){
 $$(".sec>h3").forEach(h=>h.addEventListener("click",()=>{h.parentElement.classList.toggle("closed");saveSettings();}));
 document.addEventListener("input",e=>{if(e.target.closest("#panel")&&e.target.matches("input[type=range],input[type=number]"))saveSettings();});
 document.addEventListener("change",e=>{if(e.target.closest("#panel")&&e.target.matches("input,select"))saveSettings();});
-/* panel drawer (mobile) */
-$("#btnControls").onclick=()=>document.body.classList.toggle("panelOpen");
-$("#backdrop").onclick=()=>document.body.classList.remove("panelOpen");
+/* panel drawer (tablets) / bottom sheet (phones) */
+const panelIsOpen=()=>document.body.classList.contains("panelOpen");
+function setPanel(open){
+  if(open===panelIsOpen())return;
+  document.body.classList.toggle("panelOpen",open);
+  $("#btnControls").setAttribute("aria-expanded",String(open));
+  if(open)uiOpened("panel",()=>setPanel(false));
+  else{uiClosed("panel");$("#panel").classList.remove("tall");$("#panel").style.transform="";}
+}
+$("#btnControls").onclick=()=>setPanel(!panelIsOpen());
+$("#backdrop").onclick=$("#panelClose").onclick=()=>setPanel(false);
+/* phones: drag the sheet's header down to close it, up to make it taller; tap it to toggle height */
+(()=>{
+  const head=$("#panelHead"),panel=$("#panel");let drag=null;
+  head.addEventListener("pointerdown",e=>{
+    if(!phoneMQ.matches||e.target.closest("button"))return;
+    drag={y:e.clientY,dy:0,t:e.timeStamp};head.setPointerCapture(e.pointerId);panel.classList.add("dragging");});
+  head.addEventListener("pointermove",e=>{if(!drag)return;drag.dy=e.clientY-drag.y;
+    panel.style.transform=drag.dy>0?`translateY(${drag.dy}px)`:"";});
+  const end=e=>{if(!drag)return;const{dy,t}=drag;drag=null;panel.classList.remove("dragging");panel.style.transform="";
+    const fast=e.timeStamp-t<250;
+    if(dy>90||(fast&&dy>30)){if(panel.classList.contains("tall")&&dy<220&&!fast)panel.classList.remove("tall");else setPanel(false);}
+    else if(dy<-40)panel.classList.add("tall");
+    else if(Math.abs(dy)<6&&e.type==="pointerup")panel.classList.toggle("tall");};
+  head.addEventListener("pointerup",end);head.addEventListener("pointercancel",end);
+})();
 /* file input / drop / paste */
 $("#fileInput").addEventListener("change",e=>{queueImport(e.target.files);e.target.value="";});
 ["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$("#dropZone").classList.add("over");}));
@@ -107,14 +130,18 @@ document.addEventListener("keydown",e=>{
     return;
   }
   if(ffKey(e))return;
-  if(e.key==="Escape")document.body.classList.remove("panelOpen");
+  if(e.key==="Escape")setPanel(false);
 });
-window.addEventListener("resize",debounce(()=>{if(state.layout&&state.photos.length)renderPages();},160));
+/* re-render only when the width changes: on phones, the URL bar sliding in and out fires resize with a new height only */
+let lastStageW=0;
+window.addEventListener("resize",debounce(()=>{const w=stageInnerW();if(Math.abs(w-lastStageW)<1)return;lastStageW=w;
+  if(state.layout&&state.photos.length)renderPages();},160));
 
 /* init */
 loadSettings();
 restoreControls();
 enhanceRanges();
 renderPresets();
+lastStageW=stageInnerW();
 relayoutNow();
 renderFilm();

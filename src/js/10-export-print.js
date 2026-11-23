@@ -108,6 +108,8 @@ $("#btnPrint").onclick=async()=>{
 $("#btnExport").onclick=e=>{e.stopPropagation();$("#exportMenu").classList.toggle("open");$("#helpMenu").classList.remove("open");};
 $("#btnHelp").onclick=e=>{e.stopPropagation();$("#helpMenu").classList.toggle("open");$("#exportMenu").classList.remove("open");};
 document.addEventListener("click",()=>{$("#exportMenu").classList.remove("open");$("#helpMenu").classList.remove("open");});
+/* phones: Print lives in the Export menu (the top bar has no room for it) */
+$("#btnPrintMenu").onclick=()=>$("#btnPrint").click();
 function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
 $("#exportMenu").addEventListener("click",async e=>{

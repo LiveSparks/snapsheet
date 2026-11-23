@@ -9,6 +9,27 @@ function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f
 function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;$("#toasts").appendChild(t);
   setTimeout(()=>t.classList.add("out"),2600);setTimeout(()=>t.remove(),3000);}
 const MM_IN=25.4;
+/* touch-first devices (phones, tablets): finger-friendly thresholds and hints */
+const coarseMQ=matchMedia("(pointer:coarse)");
+const isTouchUI=()=>coarseMQ.matches;
+const phoneMQ=matchMedia("(max-width:600px)");
+/* Android back button / back gesture: close the open sheet or dialog instead of leaving the app.
+   uiOpened() adds a history entry; closing from the UI calls uiClosed(), which steps back over it. */
+const uiStack=[];let uiSkipPop=0;
+function uiOpened(name,close){
+  if(uiStack.some(u=>u.name===name))return;
+  uiStack.push({name,close});
+  try{history.pushState({snapsheetUi:name},"");}catch(e){}
+}
+function uiClosed(name){
+  const i=uiStack.findIndex(u=>u.name===name);if(i<0)return;
+  uiStack.splice(i,1);
+  if(history.state&&history.state.snapsheetUi===name){uiSkipPop++;history.back();}
+}
+window.addEventListener("popstate",()=>{
+  if(uiSkipPop){uiSkipPop--;return;}
+  const u=uiStack.pop();if(u)u.close();
+});
 
 /* ═════════════════════════ state ═════════════════════════ */
 const SIZES={a4:[210,297],a5:[148,210],a3:[297,420],b5:[176,250],letter:[215.9,279.4],legal:[215.9,355.6],p1015:[101.6,152.4],p1318:[127,177.8]};
@@ -348,17 +369,21 @@ function drawGuides(ctx,pg,K,W,H){
   }
   ctx.globalAlpha=1;
 }
+/* usable width inside the stage's padding (the padding is smaller on phones) */
+function stageInnerW(){const st=$("#stage"),cs=getComputedStyle(st);
+  return st.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);}
+const sheetScale=W=>clamp(Math.min(stageInnerW(),780)/W,0.3,4);
 function sizeLabel(){return state.page.size==="custom"?"Custom":$("#pgSize").selectedOptions[0].text.split(" ·")[0];}
 function renderPages(){
   const wrap=$("#pagesWrap");frameMap.clear();wrap.innerHTML="";wrap.classList.toggle("ff",isFF());
+  ffBarSync();
   const has=state.photos.length>0;
   $("#empty").style.display=has?"none":"";
   if(!has){scheduleSave();return;}
   const L=state.layout;
   $("#btnPrint").disabled=$("#btnExport").disabled=!L.pages.length;
   if(!L.pages.length){wrap.innerHTML='<div class="nopage">No photos included — re-include some from the film strip.</div>';return;}
-  const stageW=$("#stage").clientWidth-48;
-  const K=clamp(Math.min(stageW,780)/L.W,0.3,4);
+  const K=sheetScale(L.W);
   const frag=document.createDocumentFragment();
   L.pages.forEach((pg,i)=>{
     const box=el("div","pagebox");
@@ -399,7 +424,7 @@ function updatePhotoVisual(p){
   scheduleSave();
 }
 function curK(){const L=state.layout;if(!L||!L.pages.length)return 1;
-  return clamp(Math.min($("#stage").clientWidth-48,780)/L.W,0.3,4);}
+  return sheetScale(L.W);}
 function updateStats(){
   const L=state.layout,inc=state.photos.filter(p=>p.included).length;
   $("#stats").innerHTML=L.pages.length?
@@ -417,8 +442,8 @@ function renderFilm(){
   state.photos.forEach(p=>{
     const t=el("div","tile"+(state.sel.has(p.id)?" sel":"")+(p.included?"":" off"));
     t.dataset.id=p.id;t.title=p.name;
-    const img=new Image();img.src=p.thumbURL;img.alt="";img.loading="lazy";t.appendChild(img);
-    const ck=el("span","ck");ck.textContent="✓";t.appendChild(ck);
+    const img=new Image();img.src=p.thumbURL;img.alt="";img.loading="lazy";img.draggable=false;t.appendChild(img);
+    const ck=el("span","ck");ck.textContent="✓";ck.title="Select";t.appendChild(ck);
     const rm=el("span","rm");rm.textContent="✕";rm.title="Remove from layout";t.appendChild(rm);
     const bd=el("span","bd");
     if(adjActive(p))bd.appendChild(el("i","adj"));
@@ -433,12 +458,29 @@ function stripCounts(){
   $("#stripCount").textContent=`${n} photo${n!==1?"s":""}`+(sel?` · ${sel} selected`:"")+(off?` · ${off} hidden`:"");
   $("#tgtSel").textContent=sel?`Selected (${sel})`:"Selected";
 }
+function toggleTileSel(t){
+  const id=t.dataset.id;state.sel.has(id)?state.sel.delete(id):state.sel.add(id);
+  t.classList.toggle("sel",state.sel.has(id));ffRefreshSel();
+}
+/* long-press a tile to select it (phones have no Shift/Ctrl); the click that follows is swallowed */
+(()=>{
+  const film=$("#film");let timer=0,start=null,fired=false;
+  const cancel=()=>{clearTimeout(timer);timer=0;};
+  film.addEventListener("pointerdown",e=>{
+    const t=e.target.closest(".tile");fired=false;if(!t||e.pointerType==="mouse"||e.target.closest(".rm,.ck"))return;
+    start={x:e.clientX,y:e.clientY};cancel();
+    timer=setTimeout(()=>{timer=0;fired=true;toggleTileSel(t);if(navigator.vibrate)navigator.vibrate(12);},480);
+  });
+  film.addEventListener("pointermove",e=>{if(timer&&start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>8)cancel();});
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>film.addEventListener(ev,cancel));
+  film.addEventListener("contextmenu",e=>{if(e.target.closest(".tile")&&(timer||fired))e.preventDefault();});
+  film.addEventListener("click",e=>{if(fired){fired=false;e.stopImmediatePropagation();e.preventDefault();}},true);
+})();
 $("#film").addEventListener("click",e=>{
   const t=e.target.closest(".tile");if(!t)return;
   const p=state.P.get(t.dataset.id);if(!p)return;
   if(e.target.closest(".rm")){p.included=false;relayout();renderFilm();return;}
-  if(e.target.closest(".ck")){state.sel.has(p.id)?state.sel.delete(p.id):state.sel.add(p.id);
-    t.classList.toggle("sel",state.sel.has(p.id));ffRefreshSel();return;}
+  if(e.target.closest(".ck")){toggleTileSel(t);return;}
   if(!p.included){p.included=true;relayout();renderFilm();return;}
   openEditor(p.id);
 });
@@ -451,14 +493,14 @@ const editor={pid:null,token:0};
 function includedList(){return state.photos.filter(p=>p.included);}
 function openEditor(pid){
   const p=state.P.get(pid);if(!p)return;
-  editor.pid=pid;$("#modal").hidden=false;
+  editor.pid=pid;$("#modal").hidden=false;uiOpened("editor",closeEditor);
   const fm=frameMM(p);
   $("#mCropSec").style.display=(fm&&fm.cover)?"":"none";
   $("#mHint").style.display=(fm&&fm.cover)?"":"none";
   $("#mCapSec").style.display=state.mode==="polaroid"?"":"none";
   syncEditorControls();editorDraw();
 }
-function closeEditor(){$("#modal").hidden=true;editor.pid=null;}
+function closeEditor(){$("#modal").hidden=true;editor.pid=null;uiClosed("editor");}
 function syncEditorControls(){
   const p=state.P.get(editor.pid);if(!p)return;
   const list=includedList(),idx=list.findIndex(q=>q.id===p.id);
@@ -545,14 +587,17 @@ $("#mClose").onclick=$("#mDone").onclick=closeEditor;
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();});
 /* gestures on editor canvas */
 (()=>{
-  const cv=$("#mCanvas");const pts=new Map();let start=null;
+  const cv=$("#mCanvas");const pts=new Map();let start=null,tap=null,lastTap=null,touchResetAt=0;
+  const resetCrop=()=>{const p=state.P.get(editor.pid);if(!p)return;p.crop={z:1,x:0,y:0};syncEditorControls();updatePhotoVisual(p);editorDraw();};
   cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    tap=pts.size===1&&e.pointerType!=="mouse"?{x:e.clientX,y:e.clientY,t:e.timeStamp}:null;
     if(pts.size===2){const[a,b]=[...pts.values()];start={d:Math.hypot(a.x-b.x,a.y-b.y),z:state.P.get(editor.pid).crop.z};}});
   cv.addEventListener("pointermove",e=>{
     if(!pts.has(e.pointerId))return;
     const p=state.P.get(editor.pid);if(!p)return;
     const fm=frameMM(p);if(!(fm&&fm.cover))return;
     const prev=pts.get(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>10)tap=null;
      if(pts.size===2&&start){const[a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
        p.crop.z=clamp(start.z*d/start.d,MIN_ZOOM,5);clampCrop(p);
       $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
@@ -560,15 +605,21 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();
     if(pts.size===1){const Km=cv._Km||1;p.crop.x+=(e.clientX-prev.x)/Km;p.crop.y+=(e.clientY-prev.y)/Km;clampCrop(p);
       updatePhotoVisual(p);editorDrawSoon();}
   });
-  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)start=null;};
+  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)start=null;
+    if(e.type==="pointerup"&&tap&&e.timeStamp-tap.t<300){
+      if(lastTap&&tap.t-lastTap.t<350&&Math.hypot(tap.x-lastTap.x,tap.y-lastTap.y)<30){lastTap=null;touchResetAt=e.timeStamp;resetCrop();}
+      else lastTap=tap;}
+    tap=null;};
   cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
   cv.addEventListener("wheel",e=>{e.preventDefault();const p=state.P.get(editor.pid);if(!p)return;
     const fm=frameMM(p);if(!(fm&&fm.cover))return;
      p.crop.z=clamp(p.crop.z*Math.exp(-e.deltaY*0.0014),MIN_ZOOM,5);clampCrop(p);
     $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
     updatePhotoVisual(p);editorDrawSoon();},{passive:false});
-  cv.addEventListener("dblclick",()=>{const p=state.P.get(editor.pid);if(!p)return;p.crop={z:1,x:0,y:0};syncEditorControls();updatePhotoVisual(p);editorDraw();});
+  cv.addEventListener("dblclick",e=>{if(e.timeStamp-touchResetAt<600)return;resetCrop();});
 })();
+/* re-fit the preview when the screen rotates or the window resizes */
+window.addEventListener("resize",debounce(()=>{if(!$("#modal").hidden)editorDraw();},120));
 
 /* ═════════════════════════ export & print ═════════════════════════ */
 function showOv(t){$("#ovTitle").textContent=t;$("#ovBarFill").style.width="0%";$("#ovText").textContent="";$("#overlay").hidden=false;}
@@ -680,6 +731,8 @@ $("#btnPrint").onclick=async()=>{
 $("#btnExport").onclick=e=>{e.stopPropagation();$("#exportMenu").classList.toggle("open");$("#helpMenu").classList.remove("open");};
 $("#btnHelp").onclick=e=>{e.stopPropagation();$("#helpMenu").classList.toggle("open");$("#exportMenu").classList.remove("open");};
 document.addEventListener("click",()=>{$("#exportMenu").classList.remove("open");$("#helpMenu").classList.remove("open");});
+/* phones: Print lives in the Export menu (the top bar has no room for it) */
+$("#btnPrintMenu").onclick=()=>$("#btnPrint").click();
 function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
 $("#exportMenu").addEventListener("click",async e=>{
@@ -789,7 +842,7 @@ const FF_SIZES_KEY="snapsheet-ff-sizes",FF_MIN=5,FF_SNAP_PX=7;
 let ffUserSizes=[];
 try{ffUserSizes=JSON.parse(localStorage.getItem(FF_SIZES_KEY)||"[]");}catch(e){ffUserSizes=[];}
 if(!Array.isArray(ffUserSizes))ffUserSizes=[];
-const ff={pages:1,z:0,drag:null,undo:[],redo:[],nudgeT:0};
+const ff={pages:1,z:0,drag:null,undo:[],redo:[],nudgeT:0,multi:false,lastTap:null};
 const isFF=()=>state.mode==="freeform";
 const ffIncluded=()=>state.photos.filter(p=>p.included&&p.ff);
 const ffSelected=()=>state.photos.filter(p=>state.sel.has(p.id)&&p.included&&p.ff);
@@ -924,35 +977,41 @@ function ffDecorate(){
 function ffPageAt(x,y){return $$("#pagesWrap .page").find(pg=>{const r=pg.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;});}
 const ffWrap=$("#pagesWrap");
 ffWrap.addEventListener("pointerdown",e=>{
+  ff.lastPointer=e.pointerType;
   if(!isFF()||e.button>0)return;
   const pageEl=e.target.closest(".page");if(!pageEl)return;
   const K=curK(),pi=+pageEl.dataset.pi,st=$("#stage").scrollTop;
   const h=e.target.closest(".ffh"),fr=e.target.closest(".frame");
-  const additive=e.shiftKey||e.ctrlKey||e.metaKey;
+  const touch=e.pointerType!=="mouse",additive=e.shiftKey||e.ctrlKey||e.metaKey||ff.multi;
+  /* touch on a photo that isn't selected: let the finger scroll the page; a clean tap selects it */
+  if(!h&&fr&&touch&&!state.sel.has(fr.dataset.pid)){
+    ff.drag={type:"tap",pid:fr.dataset.pid,additive,sx:e.clientX,sy:e.clientY,touch,moved:false};return;}
   if(h){const p=state.P.get(h.dataset.pid);if(!p||!p.ff)return;
     ff.drag={type:"resize",dir:h.dataset.d,p,r0:{...p.ff},K,sx:e.clientX,sy:e.clientY,st,pi,pageEl,moved:false};
   }else if(fr){const pid=fr.dataset.pid,was=state.sel.has(pid);
-    if(additive){if(was){state.sel.delete(pid);ffRefreshSel();return;}state.sel.add(pid);}
+    if(additive&&!touch){if(was){state.sel.delete(pid);ffRefreshSel();return;}state.sel.add(pid);}
     else if(!was){state.sel.clear();state.sel.add(pid);}
     ffRefreshSel();
     const items=ffSelected().filter(p=>p.ff.page===pi).map(p=>({p,x:p.ff.x,y:p.ff.y}));
     if(!items.length)return;
     const bb=items.reduce((b,{p})=>({x0:Math.min(b.x0,p.ff.x),y0:Math.min(b.y0,p.ff.y),x1:Math.max(b.x1,p.ff.x+p.ff.w),y1:Math.max(b.y1,p.ff.y+p.ff.h)}),{x0:1e9,y0:1e9,x1:-1e9,y1:-1e9});
     ff.drag={type:"move",items,bb:{x:bb.x0,y:bb.y0,w:bb.x1-bb.x0,h:bb.y1-bb.y0},K,sx:e.clientX,sy:e.clientY,st,pi,pageEl,tp:pi,moved:false,
-      collapse:!additive&&was&&state.sel.size>1?pid:null,ids:new Set(items.map(i=>i.p.id))};
+      collapse:!additive&&was&&state.sel.size>1?pid:null,toggleOff:additive&&touch&&was?pid:null,ids:new Set(items.map(i=>i.p.id))};
   }else{
     const r=pageEl.getBoundingClientRect();
     ff.drag={type:"marq",pageEl,pi,K,x0:(e.clientX-r.left)/K,y0:(e.clientY-r.top)/K,sx:e.clientX,sy:e.clientY,
       base:additive?new Set(state.sel):new Set(),additive,moved:false,box:null};
   }
+  ff.drag.touch=touch;
   if(e.pointerType==="mouse"||ff.drag.type!=="marq")e.preventDefault();
   try{ffWrap.setPointerCapture(e.pointerId);}catch(err){}
 });
 ffWrap.addEventListener("pointermove",e=>{
   const d=ff.drag;if(!d)return;
-  if(!d.moved){if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<3)return;d.moved=true;
+  if(d.type==="tap"){if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)>8)ff.drag=null;return;}
+  if(!d.moved){if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<(d.touch?6:3))return;d.moved=true;
     if(d.type!=="marq"){ffPush();d.pageEl.parentElement.classList.add("dragging");}}
-  const thr=FF_SNAP_PX/d.K,snapOn=!e.altKey;
+  const thr=(d.touch?FF_SNAP_PX*1.5:FF_SNAP_PX)/d.K,snapOn=!e.altKey;
   if(d.type==="move"){
     let dx=(e.clientX-d.sx)/d.K,dy=(e.clientY-d.sy+$("#stage").scrollTop-d.st)/d.K;
     const tEl=ffPageAt(e.clientX,e.clientY)||d.pageEl,tp=+tEl.dataset.pi;
@@ -995,19 +1054,33 @@ ffWrap.addEventListener("pointermove",e=>{
     ffRefreshSel();
   }
 });
+/* a quick second tap on the same photo opens the editor (touch has no reliable dblclick) */
+function ffTapTwice(pid){const now=performance.now(),t=ff.lastTap;ff.lastTap={pid,t:now};
+  if(t&&t.pid===pid&&now-t.t<380){ff.lastTap=null;openEditor(pid);return true;}return false;}
 function ffEndDrag(){
   const d=ff.drag;if(!d)return;ff.drag=null;
+  if(d.type==="tap"){if(!d.additive)state.sel.clear();state.sel.add(d.pid);ffRefreshSel();ff.lastTap={pid:d.pid,t:performance.now()};return;}
   if(d.box)d.box.remove();
   ffGuideLines(null,[],[]);
   if(d.type==="marq"){if(!d.moved&&!d.additive){state.sel.clear();ffRefreshSel();}return;}
-  if(!d.moved){if(d.collapse){state.sel.clear();state.sel.add(d.collapse);ffRefreshSel();}return;}
+  if(!d.moved){
+    if(d.toggleOff){state.sel.delete(d.toggleOff);ffRefreshSel();return;}
+    if(d.collapse){state.sel.clear();state.sel.add(d.collapse);ffRefreshSel();}
+    if(d.touch&&d.type==="move"&&!d.collapse&&d.items.length===1)ffTapTwice(d.items[0].p.id);
+    return;}
   if(d.type==="move"&&d.tp!==d.pi)d.items.forEach(it=>{it.p.ff.page=d.tp;it.p.ff.x+=d.off.x;it.p.ff.y+=d.off.y;});
   if(d.type==="resize")clampCrop(d.p);
   relayoutNow();
 }
 ffWrap.addEventListener("pointerup",ffEndDrag);
-ffWrap.addEventListener("pointercancel",ffEndDrag);
-ffWrap.addEventListener("dblclick",e=>{if(!isFF())return;const fr=e.target.closest(".frame");if(fr)openEditor(fr.dataset.pid);});
+/* cancelled (usually: the browser took the touch over to scroll) — never treat that as a tap on empty paper */
+ffWrap.addEventListener("pointercancel",()=>{const d=ff.drag;if(!d)return;
+  if(d.type==="tap"||d.type==="marq"){ff.drag=null;if(d.box)d.box.remove();return;}
+  ffEndDrag();});
+/* mouse only: touch double-taps are handled by ffTapTwice (which ignores Multi toggling) */
+ffWrap.addEventListener("dblclick",e=>{if(!isFF()||(ff.lastPointer&&ff.lastPointer!=="mouse"))return;
+  /* pointer capture retargets the event to the wrapper, so look up the photo under the cursor */
+  const fr=e.target.closest(".frame")||document.elementFromPoint(e.clientX,e.clientY)?.closest(".frame");if(fr)openEditor(fr.dataset.pid);});
 
 /* ---------- commands ---------- */
 function ffTargetsOrAll(){let list=ffSelected();
@@ -1116,11 +1189,21 @@ function ffRenderSizeChips(){
 }
 function ffReadDims(){const rd=id=>{const v=$(id).value.trim();if(v==="")return null;const n=+v;return Number.isFinite(n)&&n>0?ffFromU(n):NaN;};
   return{w:rd("#ffW"),h:rd("#ffH")};}
+function ffBarSync(){
+  const bar=$("#ffBar"),show=isFF()&&state.photos.length>0;bar.hidden=!show;if(!show)return;
+  const n=ffSelected().length;
+  $("#ffbInfo").textContent=n?`${n} selected`:ff.multi?"Tap photos to add":"Tap a photo";
+  $("#ffbUndo").disabled=!ff.undo.length;$("#ffbRedo").disabled=!ff.redo.length;
+  $("#ffbMulti").setAttribute("aria-pressed",String(ff.multi));
+  $("#ffbEdit").disabled=n!==1;$("#ffbRemove").disabled=$("#ffbDone").disabled=!n;
+}
 function ffPanelSync(){
+  ffBarSync();
   if(!isFF())return;
   const sel=ffSelected(),one=sel.length===1,act=document.activeElement;
   const pages=new Set(sel.map(p=>p.ff.page+1));
   $("#ffInfo").innerHTML=sel.length?`<b>${sel.length}</b> photo${sel.length>1?"s":""} selected · sheet ${[...pages].join(", ")}`:
+    isTouchUI()?"Nothing selected — tap a photo; turn on <b>Multi</b> (above the film strip) to select several.":
     "Nothing selected — click a photo, Shift-click or drag a box to select several.";
   const same=k=>sel.length&&sel.every(p=>Math.abs(p.ff[k]-sel[0].ff[k])<0.05);
   const put=(id,k,enabled)=>{const i=$(id);if(i===act)return;
@@ -1169,6 +1252,13 @@ $("#ffUndo").onclick=ffUndo;
 $("#ffRedo").onclick=ffRedo;
 $("#ffEdit").onclick=()=>{const s=ffSelected();if(s.length===1)openEditor(s[0].id);};
 ffRenderSizeChips();
+/* touch bar */
+$("#ffbUndo").onclick=ffUndo;
+$("#ffbRedo").onclick=ffRedo;
+$("#ffbMulti").onclick=()=>{ff.multi=!ff.multi;ffBarSync();};
+$("#ffbEdit").onclick=()=>{const s=ffSelected();if(s.length===1)openEditor(s[0].id);};
+$("#ffbRemove").onclick=ffRemoveSelected;
+$("#ffbDone").onclick=()=>{state.sel.clear();ffRefreshSel();};
 
 /* ═════════════════════════ UI wiring ═════════════════════════ */
 function segBind(sel,cb){$(sel).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
@@ -1233,7 +1323,7 @@ function enhanceRanges(){RANGE_IDS.forEach(id=>{const input=$("#"+id);if(!input|
   minus.onclick=()=>setValue(+input.value-(+input.step||1));plus.onclick=()=>setValue(+input.value+(+input.step||1));
   entry.addEventListener("change",()=>setValue(entry.value));entry.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();entry.blur();}});
   input.addEventListener("input",()=>{entry.value=input.value;});
-  input.after(tools);tools.append(minus,plus,entry,val);
+  input.after(tools);tools.append(minus,plus,entry,val);input.parentElement.classList.add("rangeRow");
  });}
 function restoreControls(){
   const mark=(sel,attr,value)=>{$$(sel+" button").forEach(b=>b.classList.toggle("on",b.dataset[attr]===value));};
@@ -1253,9 +1343,32 @@ function restoreControls(){
 $$(".sec>h3").forEach(h=>h.addEventListener("click",()=>{h.parentElement.classList.toggle("closed");saveSettings();}));
 document.addEventListener("input",e=>{if(e.target.closest("#panel")&&e.target.matches("input[type=range],input[type=number]"))saveSettings();});
 document.addEventListener("change",e=>{if(e.target.closest("#panel")&&e.target.matches("input,select"))saveSettings();});
-/* panel drawer (mobile) */
-$("#btnControls").onclick=()=>document.body.classList.toggle("panelOpen");
-$("#backdrop").onclick=()=>document.body.classList.remove("panelOpen");
+/* panel drawer (tablets) / bottom sheet (phones) */
+const panelIsOpen=()=>document.body.classList.contains("panelOpen");
+function setPanel(open){
+  if(open===panelIsOpen())return;
+  document.body.classList.toggle("panelOpen",open);
+  $("#btnControls").setAttribute("aria-expanded",String(open));
+  if(open)uiOpened("panel",()=>setPanel(false));
+  else{uiClosed("panel");$("#panel").classList.remove("tall");$("#panel").style.transform="";}
+}
+$("#btnControls").onclick=()=>setPanel(!panelIsOpen());
+$("#backdrop").onclick=$("#panelClose").onclick=()=>setPanel(false);
+/* phones: drag the sheet's header down to close it, up to make it taller; tap it to toggle height */
+(()=>{
+  const head=$("#panelHead"),panel=$("#panel");let drag=null;
+  head.addEventListener("pointerdown",e=>{
+    if(!phoneMQ.matches||e.target.closest("button"))return;
+    drag={y:e.clientY,dy:0,t:e.timeStamp};head.setPointerCapture(e.pointerId);panel.classList.add("dragging");});
+  head.addEventListener("pointermove",e=>{if(!drag)return;drag.dy=e.clientY-drag.y;
+    panel.style.transform=drag.dy>0?`translateY(${drag.dy}px)`:"";});
+  const end=e=>{if(!drag)return;const{dy,t}=drag;drag=null;panel.classList.remove("dragging");panel.style.transform="";
+    const fast=e.timeStamp-t<250;
+    if(dy>90||(fast&&dy>30)){if(panel.classList.contains("tall")&&dy<220&&!fast)panel.classList.remove("tall");else setPanel(false);}
+    else if(dy<-40)panel.classList.add("tall");
+    else if(Math.abs(dy)<6&&e.type==="pointerup")panel.classList.toggle("tall");};
+  head.addEventListener("pointerup",end);head.addEventListener("pointercancel",end);
+})();
 /* file input / drop / paste */
 $("#fileInput").addEventListener("change",e=>{queueImport(e.target.files);e.target.value="";});
 ["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();$("#dropZone").classList.add("over");}));
@@ -1279,15 +1392,19 @@ document.addEventListener("keydown",e=>{
     return;
   }
   if(ffKey(e))return;
-  if(e.key==="Escape")document.body.classList.remove("panelOpen");
+  if(e.key==="Escape")setPanel(false);
 });
-window.addEventListener("resize",debounce(()=>{if(state.layout&&state.photos.length)renderPages();},160));
+/* re-render only when the width changes: on phones, the URL bar sliding in and out fires resize with a new height only */
+let lastStageW=0;
+window.addEventListener("resize",debounce(()=>{const w=stageInnerW();if(Math.abs(w-lastStageW)<1)return;lastStageW=w;
+  if(state.layout&&state.photos.length)renderPages();},160));
 
 /* init */
 loadSettings();
 restoreControls();
 enhanceRanges();
 renderPresets();
+lastStageW=stageInnerW();
 relayoutNow();
 renderFilm();
 
@@ -1382,6 +1499,6 @@ function newProject(){
   clearProjectStore();
   relayoutNow();renderFilm();toast("New project — add photos to begin");
 }
-$("#btnNew").onclick=newProject;
+$("#btnNew").onclick=$("#btnNewMenu").onclick=newProject;
 $("#btnClearAll").onclick=newProject;
 restoreProject();

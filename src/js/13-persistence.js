@@ -89,6 +89,6 @@ function newProject(){
   clearProjectStore();
   relayoutNow();renderFilm();toast("New project — add photos to begin");
 }
-$("#btnNew").onclick=newProject;
+$("#btnNew").onclick=$("#btnNewMenu").onclick=newProject;
 $("#btnClearAll").onclick=newProject;
 restoreProject();

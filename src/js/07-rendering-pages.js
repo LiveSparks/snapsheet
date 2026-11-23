@@ -59,17 +59,21 @@ function drawGuides(ctx,pg,K,W,H){
   }
   ctx.globalAlpha=1;
 }
+/* usable width inside the stage's padding (the padding is smaller on phones) */
+function stageInnerW(){const st=$("#stage"),cs=getComputedStyle(st);
+  return st.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);}
+const sheetScale=W=>clamp(Math.min(stageInnerW(),780)/W,0.3,4);
 function sizeLabel(){return state.page.size==="custom"?"Custom":$("#pgSize").selectedOptions[0].text.split(" ·")[0];}
 function renderPages(){
   const wrap=$("#pagesWrap");frameMap.clear();wrap.innerHTML="";wrap.classList.toggle("ff",isFF());
+  ffBarSync();
   const has=state.photos.length>0;
   $("#empty").style.display=has?"none":"";
   if(!has){scheduleSave();return;}
   const L=state.layout;
   $("#btnPrint").disabled=$("#btnExport").disabled=!L.pages.length;
   if(!L.pages.length){wrap.innerHTML='<div class="nopage">No photos included — re-include some from the film strip.</div>';return;}
-  const stageW=$("#stage").clientWidth-48;
-  const K=clamp(Math.min(stageW,780)/L.W,0.3,4);
+  const K=sheetScale(L.W);
   const frag=document.createDocumentFragment();
   L.pages.forEach((pg,i)=>{
     const box=el("div","pagebox");
@@ -110,7 +114,7 @@ function updatePhotoVisual(p){
   scheduleSave();
 }
 function curK(){const L=state.layout;if(!L||!L.pages.length)return 1;
-  return clamp(Math.min($("#stage").clientWidth-48,780)/L.W,0.3,4);}
+  return sheetScale(L.W);}
 function updateStats(){
   const L=state.layout,inc=state.photos.filter(p=>p.included).length;
   $("#stats").innerHTML=L.pages.length?

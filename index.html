@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#101216">
 <title>SNAPSHEET — photo sheet composer for inkjet printing</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23ffc832'/><circle cx='16' cy='16' r='5' fill='%23101216'/></svg>">
@@ -24,16 +24,17 @@
   </div>
   <div id="stats" aria-live="polite"></div>
   <div class="spacer"></div>
-  <button class="btn ghost" id="btnControls">☰ Controls</button>
+  <button class="btn ghost" id="btnControls" aria-label="Controls" aria-expanded="false" aria-controls="panel"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/></svg><span class="lbl">Controls</span></button>
   <button class="btn ghost" id="btnNew" title="Start a new project — removes all photos and arrangements">New</button>
-  <label class="btn accent" for="fileInput">＋ Add photos</label>
+  <label class="btn accent" for="fileInput" id="btnAdd"><span>＋ Add<span class="hidePhone"> photos</span></span></label>
   <input type="file" id="fileInput" multiple accept="image/*,.heic,.heif" hidden>
   <div class="menuWrap">
     <button class="btn primary" id="btnPrint" disabled>⎙ Print</button>
   </div>
   <div class="menuWrap">
-    <button class="btn" id="btnExport" disabled>Export ▾</button>
+    <button class="btn" id="btnExport" disabled aria-label="Export and print"><svg class="phoneOnly" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.5v9M5 8l4 4 4-4M3 14.5h12"/></svg><span class="hidePhone">Export ▾</span></button>
     <div class="dropdown" id="exportMenu">
+       <button class="phoneOnly" id="btnPrintMenu">⎙ Print sheets…</button>
        <button data-fmt="jpeg">Download sheets as JPG</button>
        <button data-fmt="png">Download sheets as PNG</button>
        <button data-fmt="pdf">Download sheets as PDF</button>
@@ -41,13 +42,15 @@
     </div>
   </div>
   <div class="menuWrap">
-    <button class="btn ghost" id="btnHelp">?</button>
+    <button class="btn ghost" id="btnHelp" aria-label="Help and more"><span class="deskOnly">?</span><span class="phoneOnly" aria-hidden="true">⋯</span></button>
     <div class="dropdown" id="helpMenu" style="min-width:280px">
+      <button class="phoneOnly" id="btnNewMenu">New project…</button>
       <div class="dnote" style="padding:10px;line-height:1.7">
         • Everything runs <b style="color:var(--tx)">locally</b> — photos never leave this device.<br>
         • Photos, edits &amp; layouts are kept in this browser across reloads — press <b style="color:var(--tx)">New</b> to start over.<br>
         • HEIC/HEIF from iPhones is converted automatically.<br>
         • Tap any photo on a sheet to crop, move, zoom &amp; adjust it.<br>
+        <span class="touchOnly">• In the film strip, long-press a photo (or tap its ✓) to select it.<br></span>
         • In the print dialog choose <b style="color:var(--tx)">Actual&nbsp;size / 100%</b> and <b style="color:var(--tx)">Margins: none</b>.<br>
         • For borderless photo paper, enable borderless in the printer driver.
       </div>
@@ -56,7 +59,12 @@
 </header>
 
 <!-- ══════════ CONTROL PANEL ══════════ -->
-<aside id="panel">
+<aside id="panel" aria-label="Controls">
+  <div class="panelHead" id="panelHead">
+    <span class="grab" id="panelGrab" title="Drag to resize"></span>
+    <b>Controls</b>
+    <button class="btn tiny" id="panelClose">Done</button>
+  </div>
 
   <div class="sec" id="secLayout">
     <h3>Layout <span class="chev">▾</span></h3>
@@ -183,7 +191,8 @@
           </select>
         </div>
         <label class="check"><input type="checkbox" id="ffShow" checked> Show margins &amp; grid</label>
-        <p class="hintline">Drag to move (also onto another sheet) · handles resize — corners keep proportions, hold Shift to stretch · Shift-click or drag a box to multi-select · double-click to crop &amp; adjust · Alt disables snapping · arrows nudge 1&nbsp;mm (Shift 10) · Delete removes · Ctrl+Z undoes. Photos snap to the Paper “Spacing” gap next to each other.</p>
+        <p class="hintline touchOnly">Tap a photo to select it, then drag it to move (also onto another sheet) · corner handles keep proportions, edge handles stretch · turn on <b>Multi</b> in the bar above the film strip to select several · drag empty paper to scroll.</p>
+        <p class="hintline mouseOnly">Drag to move (also onto another sheet) · handles resize — corners keep proportions, hold Shift to stretch · Shift-click or drag a box to multi-select · double-click to crop &amp; adjust · Alt disables snapping · arrows nudge 1&nbsp;mm (Shift 10) · Delete removes · Ctrl+Z undoes. Photos snap to the Paper “Spacing” gap next to each other.</p>
       </div>
     </div>
   </div>
@@ -303,14 +312,23 @@
 
 <!-- ══════════ FILM STRIP ══════════ -->
 <footer id="stripBar">
+  <div id="ffBar" hidden>
+    <button type="button" id="ffbUndo" aria-label="Undo" title="Undo">↶</button>
+    <button type="button" id="ffbRedo" aria-label="Redo" title="Redo">↷</button>
+    <span id="ffbInfo">Tap a photo</span>
+    <button type="button" id="ffbMulti" aria-pressed="false" title="Tap photos to add them to the selection">Multi</button>
+    <button type="button" id="ffbEdit" title="Crop &amp; adjust">✎ Edit</button>
+    <button type="button" id="ffbRemove" aria-label="Remove from sheet" title="Remove from sheet">✕</button>
+    <button type="button" id="ffbDone" title="Clear the selection">Deselect</button>
+  </div>
   <div class="stripHead">
     <span id="stripCount">0 photos</span>
     <span class="sp"></span>
     <button class="btn tiny ghost" id="btnSelAll">Select all</button>
     <button class="btn tiny ghost" id="btnSelNone">None</button>
-    <button class="btn tiny ghost" id="btnClearAll" style="color:var(--mg)" title="Start a new project">Clear roll</button>
+    <button class="btn tiny ghost" id="btnClearAll" style="color:var(--mg)" title="Start a new project"><span>Clear<span class="hidePhone"> roll</span></span></button>
   </div>
-  <div id="film"><div class="filmEmpty">Your roll is empty — add photos above.</div></div>
+  <div id="film" aria-label="Film strip"><div class="filmEmpty">Your roll is empty — add photos above.</div></div>
 </footer>
 
 <!-- ══════════ PHOTO EDITOR MODAL ══════════ -->
@@ -324,7 +342,7 @@
     <div class="mbody">
       <div class="mstage" id="mStage">
         <canvas id="mCanvas"></canvas>
-        <div class="mhint" id="mHint">drag to move · wheel / pinch to zoom · double-tap resets</div>
+        <div class="mhint" id="mHint"><span class="mouseOnly">drag to move · wheel / pinch to zoom · double-click resets</span><span class="touchOnly">drag to move · pinch to zoom · double-tap resets</span></div>
       </div>
       <div class="mside">
         <section class="msec">

@@ -3,14 +3,14 @@ const editor={pid:null,token:0};
 function includedList(){return state.photos.filter(p=>p.included);}
 function openEditor(pid){
   const p=state.P.get(pid);if(!p)return;
-  editor.pid=pid;$("#modal").hidden=false;
+  editor.pid=pid;$("#modal").hidden=false;uiOpened("editor",closeEditor);
   const fm=frameMM(p);
   $("#mCropSec").style.display=(fm&&fm.cover)?"":"none";
   $("#mHint").style.display=(fm&&fm.cover)?"":"none";
   $("#mCapSec").style.display=state.mode==="polaroid"?"":"none";
   syncEditorControls();editorDraw();
 }
-function closeEditor(){$("#modal").hidden=true;editor.pid=null;}
+function closeEditor(){$("#modal").hidden=true;editor.pid=null;uiClosed("editor");}
 function syncEditorControls(){
   const p=state.P.get(editor.pid);if(!p)return;
   const list=includedList(),idx=list.findIndex(q=>q.id===p.id);
@@ -97,14 +97,17 @@ $("#mClose").onclick=$("#mDone").onclick=closeEditor;
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();});
 /* gestures on editor canvas */
 (()=>{
-  const cv=$("#mCanvas");const pts=new Map();let start=null;
+  const cv=$("#mCanvas");const pts=new Map();let start=null,tap=null,lastTap=null,touchResetAt=0;
+  const resetCrop=()=>{const p=state.P.get(editor.pid);if(!p)return;p.crop={z:1,x:0,y:0};syncEditorControls();updatePhotoVisual(p);editorDraw();};
   cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    tap=pts.size===1&&e.pointerType!=="mouse"?{x:e.clientX,y:e.clientY,t:e.timeStamp}:null;
     if(pts.size===2){const[a,b]=[...pts.values()];start={d:Math.hypot(a.x-b.x,a.y-b.y),z:state.P.get(editor.pid).crop.z};}});
   cv.addEventListener("pointermove",e=>{
     if(!pts.has(e.pointerId))return;
     const p=state.P.get(editor.pid);if(!p)return;
     const fm=frameMM(p);if(!(fm&&fm.cover))return;
     const prev=pts.get(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>10)tap=null;
      if(pts.size===2&&start){const[a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
        p.crop.z=clamp(start.z*d/start.d,MIN_ZOOM,5);clampCrop(p);
       $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
@@ -112,12 +115,18 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();
     if(pts.size===1){const Km=cv._Km||1;p.crop.x+=(e.clientX-prev.x)/Km;p.crop.y+=(e.clientY-prev.y)/Km;clampCrop(p);
       updatePhotoVisual(p);editorDrawSoon();}
   });
-  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)start=null;};
+  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)start=null;
+    if(e.type==="pointerup"&&tap&&e.timeStamp-tap.t<300){
+      if(lastTap&&tap.t-lastTap.t<350&&Math.hypot(tap.x-lastTap.x,tap.y-lastTap.y)<30){lastTap=null;touchResetAt=e.timeStamp;resetCrop();}
+      else lastTap=tap;}
+    tap=null;};
   cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
   cv.addEventListener("wheel",e=>{e.preventDefault();const p=state.P.get(editor.pid);if(!p)return;
     const fm=frameMM(p);if(!(fm&&fm.cover))return;
      p.crop.z=clamp(p.crop.z*Math.exp(-e.deltaY*0.0014),MIN_ZOOM,5);clampCrop(p);
     $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
     updatePhotoVisual(p);editorDrawSoon();},{passive:false});
-  cv.addEventListener("dblclick",()=>{const p=state.P.get(editor.pid);if(!p)return;p.crop={z:1,x:0,y:0};syncEditorControls();updatePhotoVisual(p);editorDraw();});
+  cv.addEventListener("dblclick",e=>{if(e.timeStamp-touchResetAt<600)return;resetCrop();});
 })();
+/* re-fit the preview when the screen rotates or the window resizes */
+window.addEventListener("resize",debounce(()=>{if(!$("#modal").hidden)editorDraw();},120));

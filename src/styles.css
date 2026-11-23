@@ -23,6 +23,7 @@ body{
 }
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0}
+button,label,a,input,select{-webkit-tap-highlight-color:transparent}
 img{display:block}
 ::selection{background:var(--yl);color:#111}
 :focus-visible{outline:2px solid var(--cy);outline-offset:2px;border-radius:4px}
@@ -34,7 +35,7 @@ img{display:block}
 /* ---------- top bar ---------- */
 #top{
   grid-area:top; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-  padding:10px 16px; background:linear-gradient(180deg,#181c23,#14171d);
+  padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left)); padding-top:calc(10px + env(safe-area-inset-top)); background:linear-gradient(180deg,#181c23,#14171d);
   border-bottom:1px solid var(--line); position:relative; z-index:40;
 }
 .brand{display:flex;align-items:center;gap:10px}
@@ -55,12 +56,14 @@ img{display:block}
   transition:transform .12s ease, box-shadow .12s ease, background .12s;
   user-select:none; white-space:nowrap;
 }
-.btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.35)}
+@media (hover:hover){
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.35)}
+  .btn.primary:hover{background:#ff6380}
+  .btn.accent:hover{background:#ffd45e}
+}
 .btn:active{transform:translateY(0)}
 .btn.primary{background:var(--mg);border-color:var(--mg);color:#fff}
-.btn.primary:hover{background:#ff6380}
 .btn.accent{background:var(--yl);border-color:var(--yl);color:#181300}
-.btn.accent:hover{background:#ffd45e}
 .btn.ghost{background:transparent}
 .btn[disabled]{opacity:.4;pointer-events:none}
 .btn.tiny{padding:5px 9px;font-size:12px;border-radius:6px}
@@ -72,10 +75,14 @@ img{display:block}
 }
 .dropdown.open{display:block;animation:pop .14s ease}
 .dropdown button{display:block;width:100%;text-align:left;padding:9px 10px;border-radius:7px;font-size:13px}
-.dropdown button:hover{background:#2a3040}
+.dropdown button:hover,.dropdown button:active{background:#2a3040}
 .dropdown .dnote{font:10.5px var(--mono);color:var(--tx3);padding:6px 10px 4px;line-height:1.5}
 @keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
 #btnControls{display:none}
+.panelHead{display:none}
+.phoneOnly{display:none!important}
+.touchOnly{display:none}
+@media (hover:none),(pointer:coarse){.touchOnly{display:inline} p.touchOnly{display:block} .mouseOnly{display:none}}
 
 /* ---------- side panel ---------- */
 #panel{
@@ -98,7 +105,8 @@ img{display:block}
 .val{font:11px var(--mono);color:var(--yl);min-width:52px;text-align:right;flex:none}
 .rangeTools{display:flex;align-items:center;gap:4px;flex:none}
 .rangeTools button{width:23px;height:27px;border:1px solid var(--line2);border-radius:5px;background:var(--field);font:600 15px/1 var(--mono);color:var(--tx2)}
-.rangeTools button:hover{border-color:var(--yl);color:var(--yl)}
+@media (hover:hover){.rangeTools button:hover{border-color:var(--yl);color:var(--yl)}}
+.rangeTools button:active{border-color:var(--yl);color:var(--yl)}
 .rangeEntry{width:56px!important;padding:5px 4px!important;text-align:right;font:11px var(--mono)!important;color:var(--yl)!important;-webkit-appearance:textfield;appearance:textfield;-moz-appearance:textfield}
 .rangeEntry::-webkit-inner-spin-button,.rangeEntry::-webkit-outer-spin-button{display:none}
 .rangeTools .val{display:none}
@@ -110,7 +118,8 @@ input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;width:16px;height:16px;border-radius:50%;margin-top:-6px;
   background:var(--yl);border:2px solid #14100a;box-shadow:0 1px 5px rgba(0,0,0,.5);transition:transform .1s;
 }
-input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+@media (hover:hover){input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
 input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--line2)}
 input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--yl);border:2px solid #14100a}
 .seg{display:flex;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px}
@@ -134,8 +143,9 @@ input[type=number]:focus,input[type=text]:focus,select:focus{border-color:var(--
   font:11px var(--mono);padding:5px 9px;border-radius:99px;border:1px solid var(--line2);
   color:var(--tx2);transition:all .12s;display:inline-flex;gap:6px;align-items:center;
 }
-.chip:hover{border-color:var(--yl);color:var(--yl);transform:translateY(-1px)}
-.chip .x{color:var(--tx3)} .chip .x:hover{color:var(--mg)}
+@media (hover:hover){.chip:hover{border-color:var(--yl);color:var(--yl);transform:translateY(-1px)} .chip .x:hover{color:var(--mg)}}
+.chip:active{border-color:var(--yl);color:var(--yl)}
+.chip .x{color:var(--tx3)}
 .swatches{display:flex;gap:8px;margin-top:8px}
 .sw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--line2);transition:transform .1s}
 .sw.on{border-color:#fff;transform:scale(1.12)}
@@ -165,7 +175,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{border-color:var(--
   position:absolute;overflow:hidden;background:#e9e7e0;padding:0;border-radius:1px;
   transition:box-shadow .12s;
 }
-.frame:hover{box-shadow:0 0 0 2px var(--cy);z-index:5}
+@media (hover:hover){.frame:hover{box-shadow:0 0 0 2px var(--cy);z-index:5}}
 .frame img{position:absolute;pointer-events:none}
 .cap{
   position:absolute;pointer-events:none;display:flex;align-items:center;justify-content:center;
@@ -224,13 +234,13 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 }
 .stripHead{display:flex;align-items:center;gap:10px;padding:7px 14px;font:11px var(--mono);color:var(--tx2);letter-spacing:.05em;flex-wrap:wrap}
 .stripHead .sp{flex:1}
-#film{display:flex;gap:9px;overflow-x:auto;padding:2px 14px 12px;min-height:96px;scrollbar-width:thin}
+#film{display:flex;gap:9px;overflow-x:auto;padding:2px 14px calc(12px + env(safe-area-inset-bottom));min-height:96px;scrollbar-width:thin;overscroll-behavior-x:contain}
 .tile{
   position:relative;flex:none;width:84px;height:84px;border-radius:6px;overflow:hidden;
   border:2px solid transparent;cursor:pointer;background:#0c0e11;
   transition:transform .13s ease, border-color .13s;
 }
-.tile:hover{transform:translateY(-3px) scale(1.03)}
+@media (hover:hover){.tile:hover{transform:translateY(-3px) scale(1.03)} .tile:hover .rm{opacity:1}}
 .tile img{width:100%;height:100%;object-fit:cover}
 .tile.sel{border-color:var(--yl)}
 .tile.off{opacity:.35;filter:grayscale(1)}
@@ -244,7 +254,6 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
   position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:4px;font-size:11px;
   background:rgba(10,12,16,.65);color:#fff;opacity:0;display:flex;align-items:center;justify-content:center;transition:opacity .12s;
 }
-.tile:hover .rm{opacity:1}
 .tile .rm:hover{background:var(--mg)}
 .tile .bd{position:absolute;bottom:4px;right:4px;display:flex;gap:3px}
 .tile .bd i{width:7px;height:7px;border-radius:50%}
@@ -263,7 +272,7 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 #mName{font:12px var(--mono);color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
 #mIdx{font:11px var(--mono);color:var(--yl)}
 .mcard>header button{margin-left:auto;width:32px;height:32px;border-radius:8px;font-size:15px;color:var(--tx2)}
-.mcard>header button:hover{background:var(--panel2);color:#fff}
+@media (hover:hover){.mcard>header button:hover{background:var(--panel2);color:#fff}}
 .mbody{display:flex;min-height:0;flex:1;overflow:hidden}
 .mstage{
   flex:1;min-width:0;display:flex;align-items:center;justify-content:center;position:relative;padding:18px;overflow:hidden;
@@ -301,60 +310,154 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 .toast.out{opacity:0;transform:translateY(-6px);transition:all .3s}
 
 /* ---------- responsive ---------- */
+/* tablets & small laptops: the control panel becomes a drawer */
 @media (max-width:940px){
-  body{grid-template-columns:1fr;grid-template-areas:"top" "stage" "strip"}
+  /* minmax(0,…): a plain 1fr track grows to the film strip's min-content width and pushes the page sideways */
+  body{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "strip"}
   #btnControls{display:inline-flex}
-  #panel{position:fixed;top:0;bottom:0;left:0;width:min(320px,86vw);transform:translateX(-104%);transition:transform .22s ease;box-shadow:20px 0 60px rgba(0,0,0,.5)}
+  body.panelOpen #btnControls{background:var(--panel2);border-color:var(--cy);color:var(--cy)}
+  #panel{position:fixed;top:0;bottom:0;left:0;width:min(340px,86vw);transform:translateX(-104%);transition:transform .22s ease;box-shadow:20px 0 60px rgba(0,0,0,.5);
+    overscroll-behavior:contain;padding-top:0;padding-left:max(14px,env(safe-area-inset-left));padding-bottom:calc(30px + env(safe-area-inset-bottom))}
   body.panelOpen #panel{transform:none}
   body.panelOpen #backdrop{opacity:1;pointer-events:auto}
+  .panelHead{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:3;background:var(--panel);
+    margin:0 -14px 12px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--line)}
+  .panelHead b{flex:1;font:11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--tx2)}
+  .panelHead .grab{display:none}
   #stats{display:none}
   .brand .tag{display:none}
-  #top{gap:8px;padding:8px 10px}
+  #top{gap:8px;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:8px}
   .btn{padding:8px 11px;font-size:12.5px}
-  .mbody{flex-direction:column;overflow-y:auto}
-  .mside{width:auto;border-left:0;border-top:1px solid var(--line)}
-  .mstage{min-height:300px}
+  /* editor: the preview stays put while the controls under it scroll */
   #modal{padding:8px}
+  .mcard{height:100%}
+  .mbody{flex-direction:column}
+  .mstage{flex:none;height:min(46dvh,560px);min-height:220px}
+  .mside{flex:1;width:auto;border-left:0;border-top:1px solid var(--line);overscroll-behavior:contain}
+  #toasts{top:calc(64px + env(safe-area-inset-top));bottom:auto}
 }
+
+/* phones */
 @media (max-width:600px){
-  #top{padding:7px 8px;gap:6px;align-content:center}
-  #top .spacer{display:none}
-  .brand{min-width:150px;flex:1 1 auto;gap:8px}
-  .brand h1{font-size:17px}
+  /* top bar: one row — ☰ · brand · Add · Export · ⋯  (Print and New move into the menus) */
+  #top{flex-wrap:nowrap;gap:6px;min-height:52px;padding:6px max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));padding-top:calc(6px + env(safe-area-inset-top))}
+  #btnControls{order:-1}
+  #top .spacer{display:block;flex:1;min-width:0}
+  .brand{min-width:0;flex:0 1 auto;gap:7px}
+  .brand h1{font-size:16px;white-space:nowrap}
   .regmark{width:22px;height:22px}
-  .brand .tag{display:none}
-  #top .btn{padding:7px 8px;font-size:11px}
+  #top .btn{height:40px;padding:0 11px;font-size:13px;justify-content:center}
+  #btnControls,#btnHelp,#btnExport{width:40px;padding:0!important}
+  .brand{overflow:hidden}
+  #btnControls .lbl,.hidePhone,.deskOnly{display:none}
+  #btnNew,#btnPrint{display:none}
+  .phoneOnly{display:inline!important}
+  .dropdown button.phoneOnly{display:block!important}
+  #btnHelp .phoneOnly{font-size:20px;line-height:1;letter-spacing:1px}
   #top .menuWrap{flex:none}
-  #top .dropdown{position:fixed;top:48px;right:8px;max-width:calc(100vw - 16px)}
-  #panel{width:min(350px,92vw);padding:11px 10px 24px;overscroll-behavior:contain}
+  #top .dropdown{position:fixed;top:calc(56px + env(safe-area-inset-top));left:8px;right:8px;min-width:0!important;
+    max-height:calc(100dvh - 72px - env(safe-area-inset-top));overflow-y:auto;overscroll-behavior:contain}
+  #helpMenu #btnNewMenu{color:var(--mg);border-bottom:1px solid var(--line);border-radius:7px 7px 0 0;margin-bottom:4px}
+  #exportMenu #btnPrintMenu{border-bottom:1px solid var(--line);border-radius:7px 7px 0 0;margin-bottom:4px}
+
+  /* controls: a bottom sheet, so the sheet above stays visible (and tappable) while you adjust */
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;height:min(60dvh,560px);max-height:calc(100dvh - 60px - env(safe-area-inset-top));
+    border-right:0;border-top:1px solid var(--line2);border-radius:16px 16px 0 0;
+    padding:0 max(10px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+    transform:translateY(104%);transition:transform .22s ease,height .22s ease;box-shadow:0 -18px 50px rgba(0,0,0,.55)}
+  #panel.tall{height:calc(100dvh - 60px - env(safe-area-inset-top))}
+  #panel.dragging{transition:none}
+  body.panelOpen #backdrop{opacity:0;pointer-events:none}
+  body.panelOpen #stage{padding-bottom:calc(min(60dvh,560px) - 60px)}
+  .panelHead{flex-wrap:wrap;row-gap:0;margin:0 -10px 10px;padding:0 12px 8px;border-radius:16px 16px 0 0;touch-action:none;cursor:grab}
+  .panelHead .grab{display:block;flex:1 1 100%;height:16px;position:relative}
+  .panelHead .grab::after{content:"";position:absolute;left:50%;top:7px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--line2)}
+
   #stage{padding:14px 10px 24px}
   #pagesWrap{gap:22px}
   .plabel{font-size:9px;letter-spacing:.06em}
   #empty{width:100%;margin-top:1vh}
-  .dz{padding:32px 14px 27px}
+  .dz{padding:30px 14px 26px}
   .pols{transform:scale(.82);margin:-7px 0 13px}
   #empty h2{font-size:clamp(24px,8vw,32px)}
-  #empty p{font-size:13px;line-height:1.4}
-  #empty .btns{gap:7px}
-  #empty .btns .btn{padding:8px 10px;font-size:12px}
-  #film{gap:7px;padding:2px 9px 9px;min-height:78px;touch-action:pan-x}
+  #empty p{font-size:13.5px;line-height:1.45}
+  #empty .btns{gap:8px;flex-direction:column;align-items:stretch;max-width:300px;margin:0 auto}
+  #empty .btns .btn{justify-content:center;padding:12px 14px;font-size:14px}
+  #film{gap:7px;padding:2px 9px calc(9px + env(safe-area-inset-bottom));min-height:78px;touch-action:pan-x}
   .tile{width:68px;height:68px}
-  .stripHead{gap:6px;padding:6px 9px;font-size:10px}
-  .stripHead .btn{padding:5px 7px;font-size:10px}
-  #toasts{bottom:98px}
-  #modal{padding:5px}
-  .mcard{border-radius:10px}
-  .mcard>header{padding:8px 10px}
-  .mbody{overflow-y:auto}
-  .mstage{min-height:210px;padding:10px}
-  .mside{padding:11px}
-  .mcard>footer{padding:8px;flex-wrap:wrap}
+  .stripHead{gap:6px;padding:6px 9px;font-size:10.5px;flex-wrap:nowrap}
+  .stripHead .sp{display:none}
+  #stripCount{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stripHead .btn{flex:none}
+  .stripHead .btn{padding:6px 9px;font-size:11.5px}
+
+  #modal{padding:0}
+  .mcard{width:100%;height:100%;max-height:none;border-radius:0;border:0}
+  .mcard>header{padding:6px 8px 6px 12px;padding-top:calc(6px + env(safe-area-inset-top))}
+  #mName{max-width:none;flex:0 1 auto;min-width:0}
+  .mstage{height:42dvh;min-height:200px;padding:10px}
+  .mside{padding:12px max(12px,env(safe-area-inset-right)) 18px max(12px,env(safe-area-inset-left))}
+  .mcard>footer{padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
   .mcard>footer .sp{display:none}
-  .mcard>footer .btn{flex:1}
-  .row{gap:5px}
-  .row input[type=range]{min-width:30px}
-  .rangeTools button{width:21px}
-  .rangeEntry{width:50px!important}
+  .mcard>footer .btn{flex:1;justify-content:center;padding:11px 8px;font-size:14px}
+
+  .row{gap:6px}
+}
+@media (max-width:370px){
+  .brand h1{display:none}
+  #top .btn{padding:0 9px}
+}
+
+/* phones held sideways: short screens */
+@media (max-height:520px) and (orientation:landscape){
+  #film{min-height:62px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+  .tile{width:56px;height:56px}
+  .stripHead{padding-top:3px;padding-bottom:3px}
+  .stripHead .btn{min-height:30px;padding-top:4px;padding-bottom:4px}
+  #ffBar{padding-top:4px;padding-bottom:4px}
+  #ffBar button{height:32px}
+  #top{padding-top:calc(5px + env(safe-area-inset-top));padding-bottom:5px}
+  #modal{padding:0}
+  .mcard{width:100%;height:100%;max-height:none;border-radius:0;border:0}
+  .mbody{flex-direction:row}
+  .mstage{height:auto;min-height:0;flex:1}
+  .mside{flex:none;width:min(300px,42vw);border-top:0;border-left:1px solid var(--line)}
+  .mcard>header{padding-top:5px;padding-bottom:5px}
+  .mcard>footer{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+}
+
+/* touch screens: finger-sized targets, and 16px text in fields so iOS doesn't zoom on focus */
+@media (pointer:coarse){
+  input[type=number],input[type=text],select{font-size:16px;padding:9px 10px}
+  .rangeEntry{font-size:16px!important;width:64px!important;padding:6px 6px!important}
+  .rangeTools{gap:5px}
+  .rangeTools button{width:36px;height:36px;font-size:18px}
+  input[type=range]{height:38px}
+  input[type=range]::-webkit-slider-runnable-track{height:5px}
+  input[type=range]::-webkit-slider-thumb{width:26px;height:26px;margin-top:-10.5px}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px}
+  .seg button{min-height:40px}
+  .modeSeg button{min-height:44px}
+  .check{min-height:38px;font-size:14px;margin-top:6px}
+  .check input{width:22px;height:22px;flex:none}
+  .chips{gap:8px}
+  .chip{min-height:36px;padding:8px 13px;font-size:12px}
+  .chip .x{padding:4px 0 4px 6px;margin:-4px 0}
+  .swatches{gap:12px}
+  .sw{width:34px;height:34px}
+  .btn.tiny{min-height:38px;padding:8px 13px;font-size:13px}
+  .sec>h3{padding:15px 12px;font-size:12px}
+  .dropdown button{padding:13px 12px;font-size:15px}
+  .tile .rm{opacity:1;width:24px;height:24px;top:2px;right:2px;font-size:12px}
+  .tile .ck{width:24px;height:24px;font-size:13px}
+  .mcard>header button{width:44px;height:44px;font-size:18px}
+  .presetSave .btn{min-width:64px;justify-content:center}
+}
+/* phones & touch tablets: sliders get their own full-width line — label + exact-value tools above, track below */
+@media (pointer:coarse),(max-width:600px){
+  .rangeRow{flex-wrap:wrap;row-gap:0}
+  .rangeRow>label{flex:1 1 auto;width:auto!important}
+  .rangeRow>input[type=range]{order:3;flex:1 1 100%;min-width:0}
 }
 
 /* ---------- freeform mode ---------- */
@@ -376,7 +479,7 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 .ffBtns .btn[disabled]{opacity:.35}
 .ffIcons{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:9px}
 .ffIcons button{height:30px;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--tx2);display:flex;align-items:center;justify-content:center}
-.ffIcons button:hover:not(:disabled){border-color:var(--yl);color:var(--yl)}
+@media (hover:hover){.ffIcons button:hover:not(:disabled){border-color:var(--yl);color:var(--yl)}}
 .ffIcons button:disabled{opacity:.3;cursor:default}
 #ffSizeChips .chip.user{border-style:dashed}
 
@@ -384,7 +487,8 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 #pagesWrap.ff .pagebox.dragging{z-index:30}
 #pagesWrap.ff .page{user-select:none;-webkit-user-select:none}
 #pagesWrap.ff .frame{cursor:move;touch-action:none}
-#pagesWrap.ff .frame:hover{z-index:auto;box-shadow:0 0 0 1px var(--cy)}
+@media (pointer:coarse){#pagesWrap.ff .frame{touch-action:manipulation} #pagesWrap.ff .frame.ffon{touch-action:none}}
+@media (hover:hover){#pagesWrap.ff .frame:hover{z-index:auto;box-shadow:0 0 0 1px var(--cy)}}
 #pagesWrap.ff .frame.ffon{box-shadow:none}
 .ffmargin{position:absolute;border:1px dashed rgba(53,120,160,.28);pointer-events:none}
 .ffgridbg{position:absolute;inset:0;pointer-events:none;
@@ -396,10 +500,37 @@ canvas.guides{position:absolute;inset:0;pointer-events:none}
 .ffh[data-d=ne]{left:100%;top:0;cursor:nesw-resize}.ffh[data-d=e]{left:100%;top:50%;cursor:ew-resize}
 .ffh[data-d=se]{left:100%;top:100%;cursor:nwse-resize}.ffh[data-d=s]{left:50%;top:100%;cursor:ns-resize}
 .ffh[data-d=sw]{left:0;top:100%;cursor:nesw-resize}.ffh[data-d=w]{left:0;top:50%;cursor:ew-resize}
-@media (pointer:coarse){.ffh{width:20px;height:20px;margin:-10px 0 0 -10px}}
+@media (pointer:coarse){.ffh{width:22px;height:22px;margin:-11px 0 0 -11px}}
 .ffbadge{position:absolute;left:50%;top:100%;transform:translate(-50%,10px);font:10.5px var(--mono);background:#111418;color:var(--yl);padding:2px 7px;border-radius:5px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .ffguides{position:absolute;inset:0;pointer-events:none;z-index:25;overflow:visible}
 .ffg{position:absolute;background:var(--mg)}
 .ffg.v{width:1px;top:-8px;bottom:-8px;margin-left:-.5px}
 .ffg.h{height:1px;left:-8px;right:-8px;margin-top:-.5px}
 .ffmarq{position:absolute;border:1px dashed var(--cy);background:rgba(53,195,220,.12);pointer-events:none;z-index:26}
+
+/* freeform touch bar: sits above the film strip on touch screens and narrow windows */
+#ffBar{display:flex;align-items:center;gap:6px;padding:7px max(10px,env(safe-area-inset-right)) 7px max(10px,env(safe-area-inset-left));border-bottom:1px solid var(--line);background:var(--panel2)}
+#ffBar button{flex:none;height:38px;min-width:38px;padding:0 11px;border:1px solid var(--line2);border-radius:8px;background:var(--field);font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap}
+#ffBar #ffbUndo,#ffBar #ffbRedo{padding:0;font-size:17px}
+#ffBar #ffbRemove{color:var(--mg)}
+#ffBar button[aria-pressed=true]{background:var(--yl);border-color:var(--yl);color:#181300}
+#ffBar button:disabled{opacity:.35}
+#ffbInfo{flex:1;min-width:0;font:11px var(--mono);color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:941px) and (hover:hover) and (pointer:fine){#ffBar{display:none!important}}
+@media (max-width:420px){
+  #ffBar{gap:5px;padding-left:8px;padding-right:8px}
+  #ffBar button{padding:0 9px;font-size:12.5px}
+  #ffBar #ffbDone{font-size:0;width:38px;padding:0}
+  #ffBar #ffbDone::before{content:"✓";font-size:16px}
+}
+
+/* no iOS "save image" callout or text selection when long-pressing photos */
+.tile,.frame,.page{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+/* touch overrides for the freeform panel (after its base rules so they win) */
+@media (pointer:coarse){
+  .ffIcons{gap:6px;grid-template-columns:repeat(4,1fr)}
+  .ffIcons button{height:42px}
+  .ffDims input{font-size:16px;padding:8px}
+  .ffUnit button{padding:8px 10px;font-size:13px}
+}
