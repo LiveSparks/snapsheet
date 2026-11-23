@@ -64,7 +64,7 @@ function renderPages(){
   const wrap=$("#pagesWrap");frameMap.clear();wrap.innerHTML="";wrap.classList.toggle("ff",isFF());
   const has=state.photos.length>0;
   $("#empty").style.display=has?"none":"";
-  if(!has)return;
+  if(!has){scheduleSave();return;}
   const L=state.layout;
   $("#btnPrint").disabled=$("#btnExport").disabled=!L.pages.length;
   if(!L.pages.length){wrap.innerHTML='<div class="nopage">No photos included — re-include some from the film strip.</div>';return;}
@@ -103,10 +103,11 @@ function renderPages(){
   });
   wrap.appendChild(frag);
   if(isFF())ffDecorate();
-  updateStats();
+  updateStats();scheduleSave();
 }
 function updatePhotoVisual(p){
   (frameMap.get(p.id)||[]).forEach(e=>{applyFrameImg(e.img,p,e.f,curK());if(e.capEl)setCapEl(e.capEl,p,e.f,curK());});
+  scheduleSave();
 }
 function curK(){const L=state.layout;if(!L||!L.pages.length)return 1;
   return clamp(Math.min($("#stage").clientWidth-48,780)/L.W,0.3,4);}

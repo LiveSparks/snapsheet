@@ -14,7 +14,7 @@ function renderFilm(){
     t.appendChild(bd);
     film.appendChild(t);
   });
-  stripCounts();
+  stripCounts();scheduleSave();
 }
 function stripCounts(){
   const n=state.photos.length,sel=state.sel.size,off=state.photos.filter(p=>!p.included).length;
@@ -32,10 +32,4 @@ $("#film").addEventListener("click",e=>{
 });
 $("#btnSelAll").onclick=()=>{state.photos.forEach(p=>state.sel.add(p.id));renderFilm();ffRefreshSel();};
 $("#btnSelNone").onclick=()=>{state.sel.clear();renderFilm();ffRefreshSel();};
-$("#btnClearAll").onclick=()=>{
-  if(!state.photos.length)return;
-  if(!confirm("Remove all photos from the roll?"))return;
-  state.photos.forEach(p=>{URL.revokeObjectURL(p.thumbURL);});
-  state.photos=[];state.P.clear();state.sel.clear();bmpCache.clear();
-  relayoutNow();renderFilm();
-};
+/* "Clear roll" and the top-bar "New" button both start a new project (see persistence) */

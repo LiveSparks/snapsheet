@@ -12,6 +12,8 @@ SNAPSHEET is a browser-based photo sheet composer for inkjet printing. Photos st
 
 All photo processing happens locally in the browser. The application does not upload images to a server.
 
+Photos, per-photo edits and layouts are saved in the browser (IndexedDB), so a page reload picks up where you left off. Use **New** (or **Clear roll**) to start a blank project.
+
 ## Development
 
 The app is a static site with no framework or runtime dependencies. After installing Node.js, run:

@@ -72,7 +72,8 @@ async function importFile(file){
   const thumbBlob=await new Promise(r=>th.toBlob(r,"image/jpeg",0.75));
   if(url)URL.revokeObjectURL(url);
   const p={id:uid(),name:file.name,w:nw,h:nh,dateMs:file.lastModified||Date.now(),
-    printBlob:(blob!==file)?blob:file, workBlob, thumbURL:URL.createObjectURL(thumbBlob),
+    printBlob:(blob!==file)?blob:file, workBlob, thumbBlob, thumbURL:URL.createObjectURL(thumbBlob),
     adj:DEF_ADJ(),crop:{z:1,x:0,y:0},rotation:0,caption:"",included:true};
   state.photos.push(p);state.P.set(p.id,p);
+  await persistPhotoBlobs(p);
 }

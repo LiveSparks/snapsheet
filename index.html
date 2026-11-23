@@ -25,6 +25,7 @@
   <div id="stats" aria-live="polite"></div>
   <div class="spacer"></div>
   <button class="btn ghost" id="btnControls">☰ Controls</button>
+  <button class="btn ghost" id="btnNew" title="Start a new project — removes all photos and arrangements">New</button>
   <label class="btn accent" for="fileInput">＋ Add photos</label>
   <input type="file" id="fileInput" multiple accept="image/*,.heic,.heif" hidden>
   <div class="menuWrap">
@@ -44,6 +45,7 @@
     <div class="dropdown" id="helpMenu" style="min-width:280px">
       <div class="dnote" style="padding:10px;line-height:1.7">
         • Everything runs <b style="color:var(--tx)">locally</b> — photos never leave this device.<br>
+        • Photos, edits &amp; layouts are kept in this browser across reloads — press <b style="color:var(--tx)">New</b> to start over.<br>
         • HEIC/HEIF from iPhones is converted automatically.<br>
         • Tap any photo on a sheet to crop, move, zoom &amp; adjust it.<br>
         • In the print dialog choose <b style="color:var(--tx)">Actual&nbsp;size / 100%</b> and <b style="color:var(--tx)">Margins: none</b>.<br>
@@ -306,7 +308,7 @@
     <span class="sp"></span>
     <button class="btn tiny ghost" id="btnSelAll">Select all</button>
     <button class="btn tiny ghost" id="btnSelNone">None</button>
-    <button class="btn tiny ghost" id="btnClearAll" style="color:var(--mg)">Clear roll</button>
+    <button class="btn tiny ghost" id="btnClearAll" style="color:var(--mg)" title="Start a new project">Clear roll</button>
   </div>
   <div id="film"><div class="filmEmpty">Your roll is empty — add photos above.</div></div>
 </footer>

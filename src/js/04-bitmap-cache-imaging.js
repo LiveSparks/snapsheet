@@ -13,6 +13,8 @@ async function getBitmap(p,needPx){
   bmpCache.set(p.id,{bmp,px:Math.max(needPx,rw)});
   return bmp;
 }
+/* drop every cached full-resolution bitmap (after an export they can hold hundreds of MB) */
+function releaseBitmaps(){bmpCache.forEach(c=>{if(c.bmp&&c.bmp.close)try{c.bmp.close()}catch(e){}});bmpCache.clear();}
 function loadImg(url){return new Promise((res,rej)=>{const i=new Image();i.decoding="async";i.onload=()=>res(i);i.onerror=()=>rej(new Error("decode failed"));i.src=url;});}
 
 /* pixel-level adjust fallback (no ctx.filter) */
