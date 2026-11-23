@@ -111,3 +111,7 @@ Every push to `main` runs [`.github/workflows/pages.yml`](.github/workflows/page
 - **LLM-generated code:** see the caution note above. Review the code before relying on it for anything important.
 - Browser storage can be cleared by the browser or by you. Treat saved projects as a convenience, not a backup, and keep your original photos.
 - Printer drivers vary. Always print one test sheet at actual size and measure it before a big batch.
+
+## License
+
+[MIT](LICENSE) © 2026 Ravi Kharb. Provided "as is", without warranty of any kind (see the caution note above).
