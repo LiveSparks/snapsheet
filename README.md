@@ -8,7 +8,7 @@ Polaroids with handwritten-style dates, tidy grids, tightly packed prints, or a 
 
 [**▶ Open the app**](https://livesparks.github.io/snapsheet/) · [Features](#features) · [How to use](#how-to-use) · [Run locally](#run-locally)
 
-![Polaroid sheet with dates and captions](docs/screenshots/polaroid.jpg)
+![SNAPSHEET: the app with a captioned polaroid sheet, beside the exported print-ready sheet with crop marks](docs/screenshots/hero.jpg)
 
 </div>
 
