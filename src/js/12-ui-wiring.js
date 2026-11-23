@@ -1,7 +1,8 @@
 /* ═════════════════════════ UI wiring ═════════════════════════ */
 function segBind(sel,cb){$(sel).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   $$(sel+" button").forEach(x=>x.classList.remove("on"));b.classList.add("on");cb(b);saveSettings();});}
-segBind("#modeSeg",b=>{state.mode=b.dataset.mode;
+segBind("#modeSeg",b=>{if(b.dataset.mode==="freeform"&&state.mode!=="freeform")ffSeedFromLayout(state.layout);
+  state.mode=b.dataset.mode;$("#optFreeform").hidden=state.mode!=="freeform";
   $("#optFlow").hidden=state.mode!=="flow";
   $("#optPolaroid").hidden=state.mode!=="polaroid";
   $("#optGrid").hidden=state.mode!=="grid";relayout();});
@@ -47,7 +48,7 @@ $("#pgSize").addEventListener("change",e=>{
 $("#pgCW").addEventListener("input",e=>{state.page.w=clamp(+e.target.value||210,40,600);relayout();});
 $("#pgCH").addEventListener("input",e=>{state.page.h=clamp(+e.target.value||297,40,600);relayout();});
 $("#pgDpi").addEventListener("change",e=>{state.dpi=+e.target.value;
-  $("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off.`;});
+  $("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off. Higher values can exceed browser canvas limits.`;});
 $("#gdOn").addEventListener("change",e=>{state.guides.on=e.target.checked;renderPages();});
 $("#gdPreview").addEventListener("change",e=>{state.guides.preview=e.target.checked;renderPages();});
 const RANGE_IDS=["fMaxW","fMaxH","pW","pH","pBand","pPad","gCW","gCH","pgMargin","pgGap","bB","bC","bS","bSH","bR","mB","mC","mS","mSH","mR","mZoom"];
@@ -64,13 +65,13 @@ function enhanceRanges(){RANGE_IDS.forEach(id=>{const input=$("#"+id);if(!input|
  });}
 function restoreControls(){
   const mark=(sel,attr,value)=>{$$(sel+" button").forEach(b=>b.classList.toggle("on",b.dataset[attr]===value));};
-  mark("#modeSeg","mode",state.mode);$("#optFlow").hidden=state.mode!=="flow";$("#optPolaroid").hidden=state.mode!=="polaroid";$("#optGrid").hidden=state.mode!=="grid";
+  mark("#modeSeg","mode",state.mode);$("#optFlow").hidden=state.mode!=="flow";$("#optPolaroid").hidden=state.mode!=="polaroid";$("#optGrid").hidden=state.mode!=="grid";$("#optFreeform").hidden=state.mode!=="freeform";ffRestoreControls();
   const setRange=(id,value,suffix)=>{$("#"+id).value=value;$("#"+id+"v").textContent=value+suffix;};
   setRange("fMaxW",state.flow.maxW,"mm");setRange("fMaxH",state.flow.maxH,"mm");$("#fRotate").checked=state.flow.rotate;
   setRange("pW",state.pol.pw,"mm");setRange("pH",state.pol.ph,"mm");setRange("pBand",state.pol.band,"mm");setRange("pPad",state.pol.pad,"mm");$("#pBorder").checked=state.pol.border;$("#pDates").checked=state.pol.dates;
   setRange("gCW",state.grid.cw,"mm");setRange("gCH",state.grid.ch,"mm");mark("#gFitSeg","fit",state.grid.fit);
   $("#pgSize").value=state.page.size;$("#customDims").hidden=state.page.size!=="custom";$("#pgCW").value=state.page.w;$("#pgCH").value=state.page.h;
-  mark("#orientSeg","o",state.page.orient);setRange("pgMargin",state.page.margin,"mm");setRange("pgGap",state.page.gap,"mm");$("#pgDpi").value=state.dpi;$("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off.`;
+  mark("#orientSeg","o",state.page.orient);setRange("pgMargin",state.page.margin,"mm");setRange("pgGap",state.page.gap,"mm");$("#pgDpi").value=state.dpi;$("#dpiNote").textContent=`Rendered at ${state.dpi} dpi — print at “actual size”, margins off. Higher values can exceed browser canvas limits.`;
   $("#gdOn").checked=state.guides.on;$("#gdPreview").checked=state.guides.preview;mark("#gdStyleSeg","s",state.guides.style);$$("#gdColors .sw").forEach(b=>b.classList.toggle("on",b.dataset.c===state.guides.color));
   mark("#targetSeg","t",state.target);
   const adj=savedSettings?.adjust||{};
@@ -105,6 +106,7 @@ document.addEventListener("keydown",e=>{
     if(e.key==="ArrowRight")edNav(1);
     return;
   }
+  if(ffKey(e))return;
   if(e.key==="Escape")document.body.classList.remove("panelOpen");
 });
 window.addEventListener("resize",debounce(()=>{if(state.layout&&state.photos.length)renderPages();},160));

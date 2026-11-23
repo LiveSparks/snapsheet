@@ -36,7 +36,7 @@
        <button data-fmt="jpeg">Download sheets as JPG</button>
        <button data-fmt="png">Download sheets as PNG</button>
        <button data-fmt="pdf">Download sheets as PDF</button>
-      <div class="dnote" id="dpiNote">Rendered at 300 dpi — print at “actual size”, margins off.</div>
+      <div class="dnote" id="dpiNote">Rendered at 300 dpi — print at “actual size”, margins off. Higher values can exceed browser canvas limits.</div>
     </div>
   </div>
   <div class="menuWrap">
@@ -69,6 +69,9 @@
         <button data-mode="grid">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="5"/><rect x="8" y="1" width="5" height="5"/><rect x="1" y="8" width="5" height="5"/><rect x="8" y="8" width="5" height="5"/></svg>
           Grid</button>
+        <button data-mode="freeform" title="Place and size every photo yourself">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="6" height="5"/><rect x="5" y="6" width="8" height="6" stroke-dasharray="2 1.4"/><path d="M11 10.5h2.2v2.2" /></svg>
+          Free</button>
       </div>
 
         <div id="optFlow" hidden>
@@ -111,6 +114,75 @@
           </div>
         </div>
       </div>
+
+      <div id="optFreeform" hidden>
+        <p class="ffInfo" id="ffInfo"></p>
+        <div class="ffHead">Size</div>
+        <div class="row"><label>Orient</label>
+          <div class="seg" style="flex:1" id="ffPOSeg">
+            <button data-po="auto" class="on cy" title="Turn each size to match the photo's orientation">Match photo</button>
+            <button data-po="portrait" title="Always portrait">▯</button>
+            <button data-po="landscape" title="Always landscape">▭</button>
+          </div>
+        </div>
+        <div class="chips" id="ffSizeChips"></div>
+        <div class="ffDims">
+          <label><span class="flabel">W</span><input type="number" id="ffW" min="0" step="any" inputmode="decimal"></label>
+          <span class="ffTimes">×</span>
+          <label><span class="flabel">H</span><input type="number" id="ffH" min="0" step="any" inputmode="decimal"></label>
+          <div class="seg ffUnit" id="ffUnitSeg"><button data-u="mm" class="on cy">mm</button><button data-u="in">in</button></div>
+        </div>
+        <div class="row ffBtns">
+          <button class="btn tiny" id="ffApply">Apply size</button>
+          <button class="btn tiny ghost" id="ffRatio" title="Reshape each frame to its photo's proportions (no cropping)">Photo ratio</button>
+          <button class="btn tiny ghost" id="ffSaveSize" title="Save W × H as a size preset">☆ Save</button>
+        </div>
+        <p class="hintline">Leave W or H empty to keep each photo's proportions. With nothing selected, sizes apply to every photo.</p>
+        <div class="ffHead">Position <span class="ffUnitLbl">mm</span></div>
+        <div class="ffDims">
+          <label><span class="flabel">X</span><input type="number" id="ffX" step="any" inputmode="decimal" disabled></label>
+          <span class="ffTimes"></span>
+          <label><span class="flabel">Y</span><input type="number" id="ffY" step="any" inputmode="decimal" disabled></label>
+        </div>
+        <div class="ffHead">Align</div>
+        <div class="ffIcons" id="ffAlign">
+          <button type="button" data-a="l" title="Align left" aria-label="Align left"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="1.4" height="12"/><rect x="3.5" y="3" width="8" height="3"/><rect x="3.5" y="8" width="5" height="3"/></svg></button>
+          <button type="button" data-a="c" title="Align centres horizontally" aria-label="Align centres horizontally"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="6.3" y="1" width="1.4" height="12" opacity=".55"/><rect x="2" y="3" width="10" height="3"/><rect x="3.5" y="8" width="7" height="3"/></svg></button>
+          <button type="button" data-a="r" title="Align right" aria-label="Align right"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="11.6" y="1" width="1.4" height="12"/><rect x="2.5" y="3" width="8" height="3"/><rect x="5.5" y="8" width="5" height="3"/></svg></button>
+          <button type="button" data-a="t" title="Align top" aria-label="Align top"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="12" height="1.4"/><rect x="3" y="3.5" width="3" height="8"/><rect x="8" y="3.5" width="3" height="5"/></svg></button>
+          <button type="button" data-a="m" title="Align middles vertically" aria-label="Align middles vertically"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="6.3" width="12" height="1.4" opacity=".55"/><rect x="3" y="2" width="3" height="10"/><rect x="8" y="3.5" width="3" height="7"/></svg></button>
+          <button type="button" data-a="b" title="Align bottom" aria-label="Align bottom"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="11.6" width="12" height="1.4"/><rect x="3" y="2.5" width="3" height="8"/><rect x="8" y="5.5" width="3" height="5"/></svg></button>
+          <button type="button" data-a="dh" title="Distribute horizontally (equal gaps)" aria-label="Distribute horizontally (equal gaps)"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="1.4" height="12"/><rect x="11.6" y="1" width="1.4" height="12"/><rect x="5" y="3.5" width="4" height="7"/></svg></button>
+          <button type="button" data-a="dv" title="Distribute vertically (equal gaps)" aria-label="Distribute vertically (equal gaps)"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="12" height="1.4"/><rect x="1" y="11.6" width="12" height="1.4"/><rect x="3.5" y="5" width="7" height="4"/></svg></button>
+        </div>
+        <div class="row"><label>Relative to</label>
+          <div class="seg" style="flex:1" id="ffAlignToSeg">
+            <button data-at="sel" class="on cy" title="Align to the selection's bounding box">Selection</button>
+            <button data-at="page" title="Align to the page margins">Margins</button>
+          </div>
+        </div>
+        <div class="ffHead">Arrange</div>
+        <div class="ffBtns ffWrapBtns">
+          <button class="btn tiny ghost" id="ffFront" title="Bring to front">⬆ Front</button>
+          <button class="btn tiny ghost" id="ffBack" title="Send to back">⬇ Back</button>
+          <button class="btn tiny ghost" id="ffEdit" title="Crop &amp; adjust the selected photo">✎ Edit</button>
+          <button class="btn tiny ghost" id="ffArrange" title="Re-pack the selection (or every photo) without overlaps">▦ Auto-arrange</button>
+          <button class="btn tiny ghost" id="ffAddSheet">＋ Sheet</button>
+          <button class="btn tiny ghost" id="ffTrim">Remove empty sheets</button>
+          <button class="btn tiny ghost" id="ffUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
+          <button class="btn tiny ghost" id="ffRedo" title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
+        </div>
+        <div class="ffHead">Snapping</div>
+        <label class="check" style="margin-top:4px"><input type="checkbox" id="ffSnap" checked> Snap to photos, margins &amp; centre</label>
+        <div class="row"><label>Grid</label>
+          <select id="ffGrid" style="flex:1">
+            <option value="0">Off</option><option value="1">1 mm</option><option value="2">2 mm</option><option value="5">5 mm</option>
+            <option value="10">10 mm</option><option value="6.35">¼ inch</option><option value="12.7">½ inch</option><option value="25.4">1 inch</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="ffShow" checked> Show margins &amp; grid</label>
+        <p class="hintline">Drag to move (also onto another sheet) · handles resize — corners keep proportions, hold Shift to stretch · Shift-click or drag a box to multi-select · double-click to crop &amp; adjust · Alt disables snapping · arrows nudge 1&nbsp;mm (Shift 10) · Delete removes · Ctrl+Z undoes. Photos snap to the Paper “Spacing” gap next to each other.</p>
+      </div>
     </div>
   </div>
 
@@ -144,7 +216,15 @@
       <div class="row"><label>Page margin</label><input type="range" id="pgMargin" min="0" max="40" value="8"><span class="val" id="pgMarginv">8mm</span></div>
       <div class="row"><label>Spacing</label><input type="range" id="pgGap" min="0" max="20" value="3"><span class="val" id="pgGapv">3mm</span></div>
       <div class="row"><label>Print quality</label>
-        <select id="pgDpi" style="flex:1"><option value="150">Draft · 150 dpi</option><option value="300" selected>Photo · 300 dpi</option></select>
+        <select id="pgDpi" style="flex:1">
+          <option value="150">Draft · 150 dpi</option>
+          <option value="300" selected>Photo · 300 dpi</option>
+          <option value="600">Fine · 600 dpi</option>
+          <option value="1200">High · 1200 dpi</option>
+          <option value="2400">Ultra · 2400 dpi</option>
+          <option value="4800">Maximum · 4800 dpi</option>
+          <option value="9600">Extreme · 9600 dpi</option>
+        </select>
       </div>
     </div>
   </div>

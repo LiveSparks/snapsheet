@@ -67,13 +67,14 @@ function layGrid(photos,W,H){
 function buildLayout(photos,W,H){
   if(state.mode==="flow")return layFlow(photos,W,H);
   if(state.mode==="polaroid")return layPolaroid(photos,W,H);
+  if(state.mode==="freeform")return layFreeform(photos,W,H);
   return layGrid(photos,W,H);
 }
 function computeLayout(){
   const inc=state.photos.filter(p=>p.included);
   let[w,h]=SIZES[state.page.size]||[state.page.w,state.page.h];
   if(state.page.size==="custom"){w=state.page.w;h=state.page.h;}
-  const orients=state.page.orient==="auto"?["portrait","landscape"]:[state.page.orient];
+  const orients=state.mode==="freeform"?[ffOrient()]:state.page.orient==="auto"?["portrait","landscape"]:[state.page.orient];
   let best=null;
   for(const o of orients){
     const W=o==="landscape"?h:w, H=o==="landscape"?w:h;

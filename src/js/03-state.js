@@ -8,6 +8,7 @@ const state={
   pol:{pw:62,ph:62,band:16,pad:5,border:true,dates:true},
   grid:{cw:60,ch:45,fit:"cover"},
   guides:{on:true,style:"marks",color:"#e0242f",preview:true},
+  ff:{snap:true,grid:0,show:true,unit:"mm",po:"auto",alignTo:"sel",orient:"portrait"},
   dpi:300, target:"sel", layout:null,
 };
 const MIN_ZOOM=.5;
@@ -18,12 +19,12 @@ let savedSettings=null;
 function loadSettings(){
   try{savedSettings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");}catch(e){savedSettings=null;}
   if(!savedSettings)return;
-  if(["flow","polaroid","grid"].includes(savedSettings.mode))state.mode=savedSettings.mode;
-  mergeSettings(state.page,savedSettings.page);mergeSettings(state.flow,savedSettings.flow);mergeSettings(state.pol,savedSettings.pol);mergeSettings(state.grid,savedSettings.grid);mergeSettings(state.guides,savedSettings.guides);
+  if(["flow","polaroid","grid","freeform"].includes(savedSettings.mode))state.mode=savedSettings.mode;
+  mergeSettings(state.page,savedSettings.page);mergeSettings(state.flow,savedSettings.flow);mergeSettings(state.pol,savedSettings.pol);mergeSettings(state.grid,savedSettings.grid);mergeSettings(state.guides,savedSettings.guides);mergeSettings(state.ff,savedSettings.ff);
   if(Number.isFinite(savedSettings.dpi))state.dpi=savedSettings.dpi;
   if(savedSettings.target==="sel"||savedSettings.target==="all")state.target=savedSettings.target;
 }
-function settingsSnapshot(){return{mode:state.mode,page:{...state.page},flow:{...state.flow},pol:{...state.pol},grid:{...state.grid},guides:{...state.guides},dpi:state.dpi,target:state.target,
+function settingsSnapshot(){return{mode:state.mode,page:{...state.page},flow:{...state.flow},pol:{...state.pol},grid:{...state.grid},guides:{...state.guides},ff:{...state.ff},dpi:state.dpi,target:state.target,
   adjust:batchAdj(),closed:$$(".sec").filter(s=>s.classList.contains("closed")).map(s=>s.id)};}
 const saveSettings=debounce(()=>{try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settingsSnapshot()));}catch(e){}},140);
 const DEF_ADJ=()=>({b:100,c:100,s:100,sh:0,r:10});
@@ -31,7 +32,8 @@ const adjActive=p=>p.adj.b!==100||p.adj.c!==100||p.adj.s!==100||p.adj.sh>0;
 const adjCss=p=>`brightness(${p.adj.b}%) contrast(${p.adj.c}%) saturate(${p.adj.s}%)`;
 const fmtDate=ms=>{const d=new Date(ms);const z=n=>String(n).padStart(2,"0");return `${z(d.getDate())}.${z(d.getMonth()+1)}.${d.getFullYear()}`};
 const capText=p=>{const c=(p.caption||"").trim(); if(c)return c; return state.pol.dates?fmtDate(p.dateMs):""};
-function frameMM(){ if(state.mode==="polaroid")return{w:state.pol.pw,h:state.pol.ph,cover:true};
+function frameMM(p){ if(state.mode==="freeform")return p&&p.ff?{w:p.ff.w,h:p.ff.h,cover:true}:null;
+  if(state.mode==="polaroid")return{w:state.pol.pw,h:state.pol.ph,cover:true};
   if(state.mode==="grid")return{w:state.grid.cw,h:state.grid.ch,cover:state.grid.fit==="cover"};
   return null; }
 const polPad=()=>state.pol.border?state.pol.pad:0;

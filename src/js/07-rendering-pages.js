@@ -9,7 +9,7 @@ function coverGeom(p,fw,fh,z){
   return{dw,dh,left:(fw-dw)/2+clamp(p.crop.x,-mx,mx),top:(fh-dh)/2+clamp(p.crop.y,-my,my)};
 }
 function clampCrop(p){
-  const fm=frameMM(); if(!fm||!fm.cover)return;
+  const fm=frameMM(p); if(!fm||!fm.cover)return;
   const dims=imageDims(p),s0=Math.max(fm.w/dims.w,fm.h/dims.h)*p.crop.z;
   const mx=Math.max(0,(dims.w*s0-fm.w)/2),my=Math.max(0,(dims.h*s0-fm.h)/2);
   p.crop.x=clamp(p.crop.x,-mx,mx); p.crop.y=clamp(p.crop.y,-my,my);
@@ -61,7 +61,7 @@ function drawGuides(ctx,pg,K,W,H){
 }
 function sizeLabel(){return state.page.size==="custom"?"Custom":$("#pgSize").selectedOptions[0].text.split(" ·")[0];}
 function renderPages(){
-  const wrap=$("#pagesWrap");frameMap.clear();wrap.innerHTML="";
+  const wrap=$("#pagesWrap");frameMap.clear();wrap.innerHTML="";wrap.classList.toggle("ff",isFF());
   const has=state.photos.length>0;
   $("#empty").style.display=has?"none":"";
   if(!has)return;
@@ -75,15 +75,15 @@ function renderPages(){
     const box=el("div","pagebox");
     const lab=el("div","plabel");
     lab.innerHTML=`<b>SHEET ${i+1}/${L.pages.length}</b><span>${pg.frames.length} photos · ${sizeLabel()} · ${Math.round(L.W)}×${Math.round(L.H)} mm</span>`;
-    const page=el("div","page");
+    const page=el("div","page");page.dataset.pi=i;
     page.style.width=L.W*K+"px";page.style.height=L.H*K+"px";
     pg.frames.forEach(f=>{
       const p=state.P.get(f.pid);if(!p)return;
-      const b=document.createElement("button");b.type="button";b.className="frame";b.title=p.name;
+      const b=document.createElement("button");b.type="button";b.className="frame";b.title=p.name;b.dataset.pid=p.id;
       b.style.cssText=`left:${f.img.x*K}px;top:${f.img.y*K}px;width:${f.img.w*K}px;height:${f.img.h*K}px`;
       const img=new Image();img.alt="";img.src=p.thumbURL;img.draggable=false;
       applyFrameImg(img,p,f,K);b.appendChild(img);
-      b.addEventListener("click",()=>openEditor(p.id));
+      b.addEventListener("click",()=>{if(!isFF())openEditor(p.id);});
       page.appendChild(b);
       const entry={el:b,img,f,capEl:null};
       if(!frameMap.has(p.id))frameMap.set(p.id,[]);
@@ -102,6 +102,7 @@ function renderPages(){
     box.append(lab,page);frag.appendChild(box);
   });
   wrap.appendChild(frag);
+  if(isFF())ffDecorate();
   updateStats();
 }
 function updatePhotoVisual(p){

@@ -5,7 +5,7 @@ SNAPSHEET is a browser-based photo sheet composer for inkjet printing. Photos st
 ## Features
 
 - Import common image formats, including HEIC/HEIF, by file picker, drag and drop, or paste.
-- Compose sheets using flow, polaroid, or fixed-grid layouts.
+- Compose sheets using flow, polaroid, or fixed-grid layouts — or freeform, where every photo is placed and sized individually with snapping, alignment, multi-select, preset and custom sizes, and undo.
 - Configure paper size, orientation, margins, spacing, DPI, crop, rotation, captions, and guides.
 - Adjust brightness, contrast, saturation, and sharpening per photo or in batches.
 - Export printable PNG/JPEG sheets or a PDF, and print at the selected physical size.
@@ -28,6 +28,22 @@ For a quick local preview:
 npm run build
 npx serve .
 ```
+
+### Run With Python
+
+Node.js is not required to serve the already-built site. From the repository root, run:
+
+```sh
+python -m http.server 8000
+```
+
+Then open <http://localhost:8000> in your browser. On some systems, use `python3` instead:
+
+```sh
+python3 -m http.server 8000
+```
+
+If port `8000` is already in use, choose another port, for example `python -m http.server 8080`. Python serves the generated root files (`index.html`, `styles.css`, and `app.js`); run `npm run build` after changing files under `src/` so those generated files are refreshed.
 
 Source is split into:
 

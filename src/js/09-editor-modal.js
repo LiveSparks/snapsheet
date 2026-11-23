@@ -4,7 +4,7 @@ function includedList(){return state.photos.filter(p=>p.included);}
 function openEditor(pid){
   const p=state.P.get(pid);if(!p)return;
   editor.pid=pid;$("#modal").hidden=false;
-  const fm=frameMM();
+  const fm=frameMM(p);
   $("#mCropSec").style.display=(fm&&fm.cover)?"":"none";
   $("#mHint").style.display=(fm&&fm.cover)?"":"none";
   $("#mCapSec").style.display=state.mode==="polaroid"?"":"none";
@@ -26,7 +26,7 @@ async function editorDraw(){
   const p=state.P.get(editor.pid);if(!p)return;
   const token=++editor.token;
   const stage=$("#mStage"),cv=$("#mCanvas"),ctx=cv.getContext("2d",{willReadFrequently:true});
-  const fm=frameMM();
+  const fm=frameMM(p);
   const dims=imageDims(p),turn=(p.rotation||0)%2!==0,rot=rotationDeg(p);
   const ar=fm?fm.w/fm.h:dims.w/dims.h;
   const bw=stage.clientWidth-36,bh=stage.clientHeight-46;
@@ -91,7 +91,7 @@ $("#mInc").addEventListener("change",e=>{const p=state.P.get(editor.pid);if(!p)r
   p.included=e.target.checked;relayout();});
 function edNav(dir){const list=includedList();if(!list.length)return;
   let i=list.findIndex(q=>q.id===editor.pid);
-  i=(i+dir+list.length)%list.length;editor.pid=list[i].id;syncEditorControls();editorDraw();}
+  i=(i+dir+list.length)%list.length;openEditor(list[i].id);}
 $("#mPrev").onclick=()=>edNav(-1);$("#mNext").onclick=()=>edNav(1);
 $("#mClose").onclick=$("#mDone").onclick=closeEditor;
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();});
@@ -103,7 +103,7 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();
   cv.addEventListener("pointermove",e=>{
     if(!pts.has(e.pointerId))return;
     const p=state.P.get(editor.pid);if(!p)return;
-    const fm=frameMM();if(!(fm&&fm.cover))return;
+    const fm=frameMM(p);if(!(fm&&fm.cover))return;
     const prev=pts.get(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
      if(pts.size===2&&start){const[a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
        p.crop.z=clamp(start.z*d/start.d,MIN_ZOOM,5);clampCrop(p);
@@ -115,7 +115,7 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeEditor();
   const up=e=>{pts.delete(e.pointerId);if(pts.size<2)start=null;};
   cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
   cv.addEventListener("wheel",e=>{e.preventDefault();const p=state.P.get(editor.pid);if(!p)return;
-    const fm=frameMM();if(!(fm&&fm.cover))return;
+    const fm=frameMM(p);if(!(fm&&fm.cover))return;
      p.crop.z=clamp(p.crop.z*Math.exp(-e.deltaY*0.0014),MIN_ZOOM,5);clampCrop(p);
     $("#mZoom").value=Math.round(p.crop.z*100);$("#mZoomv").textContent=Math.round(p.crop.z*100)+"%";
     updatePhotoVisual(p);editorDrawSoon();},{passive:false});

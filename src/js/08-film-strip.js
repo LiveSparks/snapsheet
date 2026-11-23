@@ -26,12 +26,12 @@ $("#film").addEventListener("click",e=>{
   const p=state.P.get(t.dataset.id);if(!p)return;
   if(e.target.closest(".rm")){p.included=false;relayout();renderFilm();return;}
   if(e.target.closest(".ck")){state.sel.has(p.id)?state.sel.delete(p.id):state.sel.add(p.id);
-    t.classList.toggle("sel",state.sel.has(p.id));stripCounts();return;}
+    t.classList.toggle("sel",state.sel.has(p.id));ffRefreshSel();return;}
   if(!p.included){p.included=true;relayout();renderFilm();return;}
   openEditor(p.id);
 });
-$("#btnSelAll").onclick=()=>{state.photos.forEach(p=>state.sel.add(p.id));renderFilm();};
-$("#btnSelNone").onclick=()=>{state.sel.clear();renderFilm();};
+$("#btnSelAll").onclick=()=>{state.photos.forEach(p=>state.sel.add(p.id));renderFilm();ffRefreshSel();};
+$("#btnSelNone").onclick=()=>{state.sel.clear();renderFilm();ffRefreshSel();};
 $("#btnClearAll").onclick=()=>{
   if(!state.photos.length)return;
   if(!confirm("Remove all photos from the roll?"))return;
