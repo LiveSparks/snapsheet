@@ -6,7 +6,7 @@
 
 Polaroids with handwritten-style dates, tidy grids, tightly packed prints, or a freeform canvas where you place and size every photo yourself, with cut guides, per-photo edits and exports at real physical sizes.
 
-[**▶ Open the app**](https://OWNER.github.io/snapsheet/) · [Features](#features) · [How to use](#how-to-use) · [Run locally](#run-locally)
+[**▶ Open the app**](https://livesparks.github.io/snapsheet/) · [Features](#features) · [How to use](#how-to-use) · [Run locally](#run-locally)
 
 ![Polaroid sheet with dates and captions](docs/screenshots/polaroid.jpg)
 
@@ -70,7 +70,7 @@ Printing a stack of phone photos at home usually means fighting a word processor
 SNAPSHEET is a static site with no framework and no runtime dependencies. Any static file server works:
 
 ```sh
-git clone https://github.com/OWNER/snapsheet.git
+git clone https://github.com/LiveSparks/snapsheet.git
 cd snapsheet
 python -m http.server 8000        # or: npx serve .
 ```
